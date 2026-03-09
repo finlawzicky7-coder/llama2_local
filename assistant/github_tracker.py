@@ -2,6 +2,7 @@
 
 import json
 import urllib.request
+import urllib.parse
 import os
 import re
 import logging
@@ -99,10 +100,6 @@ def find_trending_repos(language=None, since="weekly"):
     state["seen_repos"] = list(seen)[-500:]
     _save_state(state)
     return repos
-
-
-# Need urllib.parse for query encoding
-import urllib.parse
 
 
 def _extract_bounty_amount(text, labels=None):

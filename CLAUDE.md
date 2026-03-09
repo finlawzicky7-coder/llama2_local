@@ -18,10 +18,11 @@ You are a 24/7 autonomous personal assistant and opportunity entrepreneur. You m
 - Use `assistant/telegram_bot.py` to send messages and receive commands
 
 ### Supported Commands
-**Task Management:** /tasks, /add, /done
-**Market & Crypto:** /prices, /trending, /watchadd, /watchdel
+**Task Management:** /tasks, /add, /done, /remind
+**Market & Crypto:** /prices, /signals, /trending, /watchadd, /watchdel
 **Opportunities:** /opps, /top, /dismiss
 **GitHub:** /repos, /bounties
+**Earnings:** /earned, /earnings
 **Email:** /emails
 **System:** /health, /help
 

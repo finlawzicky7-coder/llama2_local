@@ -3,7 +3,10 @@
 import os
 import subprocess
 import shutil
+import logging
 from datetime import datetime
+
+log = logging.getLogger("sysmon")
 
 
 def get_disk_usage():
@@ -35,7 +38,11 @@ def get_running_processes(limit=10):
         )
         lines = result.stdout.strip().split("\n")
         return lines[:limit + 1]  # header + top N
-    except Exception:
+    except subprocess.TimeoutExpired:
+        log.warning("Process list timed out")
+        return []
+    except Exception as e:
+        log.warning("Failed to get process list: %s", e)
         return []
 
 
@@ -62,9 +69,21 @@ def check_git_repos(paths=None):
                     "dirty": bool(status.stdout.strip()),
                     "changes": len(status.stdout.strip().split("\n")) if status.stdout.strip() else 0,
                 })
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning("Git check failed for %s: %s", path, e)
     return results
+
+
+def get_uptime():
+    """Get system uptime."""
+    try:
+        with open("/proc/uptime") as f:
+            uptime_seconds = float(f.read().split()[0])
+        days = int(uptime_seconds // 86400)
+        hours = int((uptime_seconds % 86400) // 3600)
+        return f"{days}d {hours}h"
+    except (OSError, ValueError):
+        return "unknown"
 
 
 def generate_health_report():
@@ -75,6 +94,7 @@ def generate_health_report():
 
     report = f"*System Health — {now}*\n\n"
     report += f"*Disk:* {disk['used_gb']}GB / {disk['total_gb']}GB ({disk['percent_used']}%)\n"
+    report += f"*Uptime:* {get_uptime()}\n"
 
     if load:
         report += f"*Load:* {load['1min']:.2f} / {load['5min']:.2f} / {load['15min']:.2f}\n"

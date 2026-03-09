@@ -98,9 +98,19 @@ def _send_single_message(token, chat_id, text, parse_mode):
             result = json.loads(resp.read())
             return result.get("ok", False)
     except Exception as e:
-        # If Markdown fails, retry without parse_mode
+        # If Markdown fails, retry once without parse_mode
         if parse_mode:
-            return _send_single_message(token, chat_id, text, parse_mode="")
+            try:
+                plain_data = urllib.parse.urlencode({
+                    "chat_id": chat_id,
+                    "text": text,
+                }).encode()
+                req = urllib.request.Request(url, data=plain_data)
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    result = json.loads(resp.read())
+                    return result.get("ok", False)
+            except Exception:
+                pass
         print(f"[Telegram] Send failed: {e}")
         return False
 
