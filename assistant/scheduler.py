@@ -16,6 +16,7 @@ from assistant.market_tracker import (
     fetch_crypto_prices, fetch_trending_coins, check_price_alerts,
     add_to_watchlist, remove_from_watchlist,
     format_price_report, format_alerts, format_trending,
+    calculate_signals,
 )
 from assistant.email_monitor import check_inbox, format_email_alerts
 from assistant.github_tracker import (
@@ -24,7 +25,7 @@ from assistant.github_tracker import (
 )
 from assistant.opportunity_scorer import (
     rank_opportunities, get_top_opportunities, dismiss_opportunity,
-    format_scored_report,
+    format_scored_report, log_earning, format_earnings_report,
 )
 
 # Setup logging
@@ -161,6 +162,42 @@ def _dispatch_command(text):
         report = format_email_alerts(flagged)
         send_message(report or "No opportunity emails found (or IMAP not configured).")
 
+    # --- Earnings Tracking ---
+    elif text.startswith("/earned "):
+        # /earned 500 freelance gig description
+        parts = text[8:].strip().split(None, 2)
+        if len(parts) >= 2:
+            try:
+                amount = float(parts[0].replace("$", "").replace(",", ""))
+                source = parts[1]
+                desc = parts[2] if len(parts) > 2 else ""
+                entry = log_earning(amount, source, desc)
+                send_message(f"Logged *${amount:,.2f}* from {escape_markdown(source)}")
+            except ValueError:
+                send_message("Usage: /earned <amount> <source> [description]")
+        else:
+            send_message("Usage: /earned 500 freelance fixed a React bug")
+
+    elif text.startswith("/earnings"):
+        send_message(format_earnings_report())
+
+    # --- Trading Signals ---
+    elif text.startswith("/signals"):
+        signals = calculate_signals()
+        if signals:
+            msg = "*📊 Trading Signals*\n\n"
+            for coin, sig in signals.items():
+                msg += f"*{coin.title()}* — ${sig['price']:,.2f}\n"
+                if sig.get("rsi"):
+                    msg += f"  RSI: {sig['rsi']}\n"
+                msg += f"  Trend: {sig['trend']}\n"
+                for s in sig["signals"]:
+                    msg += f"  {s}\n"
+                msg += "\n"
+            send_message(msg)
+        else:
+            send_message("Not enough data for signals yet. Need ~5 price snapshots.")
+
     # --- Help ---
     elif text.startswith("/help") or text.startswith("/start"):
         help_text = (
@@ -169,17 +206,21 @@ def _dispatch_command(text):
             "/add <title> — Add a new task\n"
             "/done <id> — Complete a task\n\n"
             "*Market & Crypto*\n"
-            "/prices — Current crypto prices\n"
+            "/prices — Prices + trading signals\n"
+            "/signals — RSI, momentum, volume analysis\n"
             "/trending — Trending coins\n"
             "/watchadd <coin> — Add to watchlist\n"
             "/watchdel <coin> — Remove from watchlist\n\n"
             "*Opportunities*\n"
-            "/opps — Scan for new opportunities\n"
+            "/opps — Scan for paid opportunities\n"
             "/top — Top scored opportunities\n"
             "/dismiss <n> — Dismiss opportunity #n\n\n"
             "*GitHub*\n"
             "/repos — Trending repos this week\n"
             "/bounties — Paid/bounty issues\n\n"
+            "*Earnings*\n"
+            "/earned <amt> <source> — Log income\n"
+            "/earnings — View earnings summary\n\n"
             "*Email*\n"
             "/emails — Check inbox for opportunities\n\n"
             "*System*\n"

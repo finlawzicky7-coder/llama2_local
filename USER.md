@@ -7,10 +7,25 @@
 - **Telegram**: @rustypython
 - **Timezone**: (not yet set)
 - **Preferred communication**: Telegram
+- **Min hourly rate**: $50/hr
+
+## Skills
+- Python, Rust, JavaScript, TypeScript
+- React, Django, FastAPI, Node.js
+- AWS, Docker, Kubernetes, Linux, DevOps
+- API development, backend, system design
+- Smart contracts, Solidity, Web3
+- Machine learning, data engineering
+
+## Income Goals
+- **Target**: $5,000/month
+- **Focus**: Freelance contracts, bounties, consulting
+- **Availability**: 20 hrs/week for paid work
 
 ## Preferences
 - Task categories: Calendar & Reminders, Code & Dev Tasks, File & System Management
 - Notification frequency: Every 30 minutes
+- **Opportunity filters**: Remote only, async preferred, no unpaid work
 
 ## Active Tasks
 - [ ] [general] test task 2

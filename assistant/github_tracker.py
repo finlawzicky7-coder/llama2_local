@@ -3,7 +3,11 @@
 import json
 import urllib.request
 import os
+import re
+import logging
 from datetime import datetime, timedelta
+
+log = logging.getLogger("github")
 
 GITHUB_STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "github_state.json")
 
@@ -55,7 +59,7 @@ def _fetch_json(url, timeout=15):
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())
     except Exception as e:
-        print(f"[GitHub] Fetch error ({url}): {e}")
+        log.warning("Fetch error (%s): %s", url, e)
         return None
 
 
@@ -101,6 +105,43 @@ def find_trending_repos(language=None, since="weekly"):
 import urllib.parse
 
 
+def _extract_bounty_amount(text, labels=None):
+    """Extract bounty/reward dollar amount from issue text and labels."""
+    # Check labels for amounts like "$500" or "bounty: $100"
+    if labels:
+        for label in labels:
+            name = label.get("name", "") if isinstance(label, dict) else str(label)
+            match = re.search(r"\$\s?([\d,]+(?:\.\d+)?)", name)
+            if match:
+                amount = float(match.group(1).replace(",", ""))
+                if amount >= 10:
+                    return {"amount": amount, "rate_type": "bounty", "raw": f"${amount:.0f} bounty"}
+
+    # Check text body
+    if text:
+        # Look for bounty/reward amount patterns
+        patterns = [
+            re.compile(r"(?:bounty|reward|prize|payout)[:\s]*\$\s?([\d,]+)", re.I),
+            re.compile(r"\$\s?([\d,]+)\s*(?:bounty|reward|prize|bonus)", re.I),
+            re.compile(r"(?:pay|offer|budget)[:\s]*\$\s?([\d,]+)", re.I),
+        ]
+        for pattern in patterns:
+            match = pattern.search(text)
+            if match:
+                amount = float(match.group(1).replace(",", ""))
+                if amount >= 10:
+                    return {"amount": amount, "rate_type": "bounty", "raw": f"${amount:.0f} bounty"}
+
+        # Generic dollar amount as fallback
+        match = re.search(r"\$\s?([\d,]+)", text)
+        if match:
+            amount = float(match.group(1).replace(",", ""))
+            if amount >= 50:  # Higher threshold for generic matches
+                return {"amount": amount, "rate_type": "fixed", "raw": f"${amount:.0f}"}
+
+    return None
+
+
 def find_bounty_issues():
     """Find GitHub issues with bounty labels (paid work opportunities)."""
     state = _load_state()
@@ -108,14 +149,15 @@ def find_bounty_issues():
 
     queries = [
         'label:bounty state:open',
-        'label:"help wanted" label:"good first issue" state:open',
         'label:paid state:open',
+        'label:"help wanted" label:"good first issue" state:open',
+        '"bounty" "$" state:open',
     ]
 
     issues = []
     for query in queries:
         encoded = urllib.parse.quote(query)
-        url = f"https://api.github.com/search/issues?q={encoded}&sort=created&order=desc&per_page=10"
+        url = f"https://api.github.com/search/issues?q={encoded}&sort=created&order=desc&per_page=15"
         data = _fetch_json(url)
         if not data:
             continue
@@ -125,18 +167,24 @@ def find_bounty_issues():
             if issue_url in seen:
                 continue
 
-            # Extract repo name from html_url: https://github.com/owner/repo/issues/123
             parts = issue_url.split("/")
             repo_name = "/".join(parts[3:5]) if len(parts) >= 5 else ""
 
-            issues.append({
+            # Extract bounty amount from title, body, and labels
+            searchable = (item.get("title", "") + " " + (item.get("body") or ""))
+            pay = _extract_bounty_amount(searchable, item.get("labels", []))
+
+            issue = {
                 "source": "GitHub",
                 "title": item["title"][:120],
                 "repo": repo_name,
                 "url": issue_url,
                 "labels": [label["name"] for label in item.get("labels", [])[:5]],
                 "created": item.get("created_at", ""),
-            })
+            }
+            if pay:
+                issue["pay"] = pay
+            issues.append(issue)
             seen.add(issue_url)
 
     state["seen_issues"] = list(seen)[-500:]
@@ -181,12 +229,18 @@ def format_bounty_report(issues, limit=10):
     if not issues:
         return None
 
+    # Sort by bounty amount (highest first)
+    issues_sorted = sorted(issues, key=lambda x: x.get("pay", {}).get("amount", 0), reverse=True)
+
     msg = f"*💎 {len(issues)} Bounty/Paid Issues*\n\n"
-    for issue in issues[:limit]:
+    for issue in issues_sorted[:limit]:
         labels = ", ".join(issue.get("labels", [])[:3])
         repo = issue.get("repo", "")
+        pay_str = ""
+        if issue.get("pay"):
+            pay_str = f" 💵 {issue['pay']['raw']}"
         msg += (
-            f"*{issue['title']}*\n"
+            f"*{issue['title']}*{pay_str}\n"
             f"  `{repo}` | {labels}\n"
             f"  {issue['url']}\n\n"
         )
