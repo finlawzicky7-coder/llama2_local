@@ -13,10 +13,11 @@
 - Notification frequency: Every 30 minutes
 
 ## Active Tasks
-<!-- Tasks are added here by the assistant -->
+- [ ] [general] test task 2
+- [ ] [general] test task 3
 
 ## Completed Tasks
-<!-- Archived completed tasks -->
+- [x] test task 1 (completed 2026-03-09T08:57:29.997116)
 
 ## Notes & Context
 <!-- Persistent notes from conversations -->

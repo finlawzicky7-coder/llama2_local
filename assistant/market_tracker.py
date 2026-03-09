@@ -16,8 +16,11 @@ DEFAULT_ALERT_THRESHOLDS = {
 
 def _load_market_data():
     if os.path.exists(MARKET_FILE):
-        with open(MARKET_FILE) as f:
-            return json.load(f)
+        try:
+            with open(MARKET_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
     return {
         "watchlist": DEFAULT_WATCHLIST,
         "alert_thresholds": DEFAULT_ALERT_THRESHOLDS,

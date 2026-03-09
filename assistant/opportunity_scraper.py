@@ -12,8 +12,11 @@ OPPORTUNITIES_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "o
 
 def _load_opportunities():
     if os.path.exists(OPPORTUNITIES_FILE):
-        with open(OPPORTUNITIES_FILE) as f:
-            return json.load(f)
+        try:
+            with open(OPPORTUNITIES_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
     return {"seen": [], "alerts": [], "last_check": None}
 
 

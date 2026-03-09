@@ -6,34 +6,40 @@ from datetime import datetime
 
 SCORES_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "opportunity_scores.json")
 
-# Scoring weights — customize per user profile
 SCORING_RULES = {
     "high_value_keywords": {
         "words": ["paid", "bounty", "contract", "revenue", "funding", "grant",
                   "sponsorship", "commission", "budget", "$"],
         "bonus": 30,
+        "max_matches": 3,
     },
     "tech_match_keywords": {
         "words": ["python", "rust", "javascript", "typescript", "react",
                   "django", "fastapi", "api", "backend", "devops", "linux"],
         "bonus": 15,
+        "max_matches": 4,
     },
     "opportunity_type_keywords": {
         "words": ["remote", "freelance", "part-time", "async", "flexible"],
         "bonus": 10,
+        "max_matches": 3,
     },
     "urgency_keywords": {
         "words": ["asap", "urgent", "immediately", "this week", "deadline"],
         "bonus": 5,
+        "max_matches": 2,
     },
 }
 
 
 def _load_scores():
     if os.path.exists(SCORES_FILE):
-        with open(SCORES_FILE) as f:
-            return json.load(f)
-    return {"scored": [], "dismissed": []}
+        try:
+            with open(SCORES_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {"scored": [], "dismissed_urls": []}
 
 
 def _save_scores(data):
@@ -46,19 +52,18 @@ def score_opportunity(opportunity):
     score = 0
     reasons = []
 
-    # Build searchable text from all available fields
+    # Build searchable text from all string fields
     searchable = " ".join(str(v) for v in opportunity.values() if isinstance(v, str)).lower()
-    if isinstance(opportunity.get("keywords"), list):
-        searchable += " " + " ".join(opportunity["keywords"])
-    if isinstance(opportunity.get("labels"), list):
-        searchable += " " + " ".join(opportunity["labels"])
-    if isinstance(opportunity.get("topics"), list):
-        searchable += " " + " ".join(opportunity["topics"])
+    for list_field in ("keywords", "labels", "topics"):
+        if isinstance(opportunity.get(list_field), list):
+            searchable += " " + " ".join(str(x) for x in opportunity[list_field])
 
     for rule_name, rule in SCORING_RULES.items():
         matches = [w for w in rule["words"] if w in searchable]
         if matches:
-            score += rule["bonus"] * len(matches)
+            # Cap the number of matches that contribute to score
+            capped = min(len(matches), rule.get("max_matches", 3))
+            score += rule["bonus"] * capped
             reasons.append(f"{rule_name}: {', '.join(matches[:3])}")
 
     # Bonus for GitHub stars
@@ -91,10 +96,10 @@ def rank_opportunities(opportunities):
 
 
 def get_top_opportunities(limit=5):
-    """Get the top-scored opportunities from history."""
+    """Get the top-scored opportunities from history, excluding dismissed ones."""
     data = _load_scores()
-    dismissed = set(json.dumps(d) for d in data.get("dismissed", []))
-    active = [s for s in data["scored"] if json.dumps(s) not in dismissed]
+    dismissed_urls = set(data.get("dismissed_urls", []))
+    active = [s for s in data["scored"] if s.get("url") not in dismissed_urls]
     active.sort(key=lambda x: x.get("score", 0), reverse=True)
     return active[:limit]
 
@@ -102,12 +107,17 @@ def get_top_opportunities(limit=5):
 def dismiss_opportunity(index):
     """Dismiss an opportunity by index (0-based from top list)."""
     data = _load_scores()
-    top = sorted(data["scored"], key=lambda x: x.get("score", 0), reverse=True)
-    if 0 <= index < len(top):
-        data["dismissed"].append(top[index])
-        data["dismissed"] = data["dismissed"][-100:]
-        _save_scores(data)
-        return top[index]
+    dismissed_urls = set(data.get("dismissed_urls", []))
+    active = [s for s in data["scored"] if s.get("url") not in dismissed_urls]
+    active.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+    if 0 <= index < len(active):
+        url = active[index].get("url", "")
+        if url:
+            data.setdefault("dismissed_urls", []).append(url)
+            data["dismissed_urls"] = data["dismissed_urls"][-100:]
+            _save_scores(data)
+        return active[index]
     return None
 
 

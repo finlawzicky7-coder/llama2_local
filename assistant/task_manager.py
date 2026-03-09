@@ -2,6 +2,7 @@
 
 import os
 import json
+import tempfile
 from datetime import datetime
 
 TASKS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tasks.json")
@@ -10,21 +11,42 @@ USER_MD = os.path.join(os.path.dirname(os.path.dirname(__file__)), "USER.md")
 
 def _load_tasks():
     if os.path.exists(TASKS_FILE):
-        with open(TASKS_FILE) as f:
-            return json.load(f)
-    return {"active": [], "completed": [], "reminders": []}
+        try:
+            with open(TASKS_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            print("[Tasks] Corrupted tasks.json, starting fresh")
+    return {"active": [], "completed": [], "reminders": [], "next_id": 1}
 
 
 def _save_tasks(data):
-    with open(TASKS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    """Atomic write — write to temp file then rename."""
+    dir_name = os.path.dirname(TASKS_FILE)
+    try:
+        fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, TASKS_FILE)
+    except OSError as e:
+        print(f"[Tasks] Save failed: {e}")
+
+
+def _next_id(data):
+    """Get next unique task ID using a persistent counter."""
+    next_id = data.get("next_id", 1)
+    # Also ensure it's higher than any existing ID
+    all_ids = [t.get("id", 0) for t in data["active"] + data["completed"]]
+    if all_ids:
+        next_id = max(next_id, max(all_ids) + 1)
+    data["next_id"] = next_id + 1
+    return next_id
 
 
 def add_task(title, category="general", due=None, priority="normal"):
     """Add a new task."""
     data = _load_tasks()
     task = {
-        "id": len(data["active"]) + len(data["completed"]) + 1,
+        "id": _next_id(data),
         "title": title,
         "category": category,
         "priority": priority,
@@ -63,7 +85,7 @@ def add_reminder(text, remind_at):
     """Add a time-based reminder."""
     data = _load_tasks()
     reminder = {
-        "id": len(data.get("reminders", [])) + 1,
+        "id": _next_id(data),
         "text": text,
         "remind_at": remind_at,
         "created": datetime.now().isoformat(),
@@ -99,10 +121,13 @@ def _sync_to_user_md(data):
     if not os.path.exists(USER_MD):
         return
 
-    with open(USER_MD) as f:
-        content = f.read()
+    try:
+        with open(USER_MD) as f:
+            content = f.read()
+    except OSError:
+        return
 
-    # Replace active tasks section
+    # Build replacement sections
     active_section = "## Active Tasks\n"
     if data["active"]:
         for t in data["active"]:
@@ -111,9 +136,8 @@ def _sync_to_user_md(data):
     else:
         active_section += "<!-- No active tasks -->\n"
 
-    # Replace completed tasks section
     completed_section = "## Completed Tasks\n"
-    for t in data["completed"][-10:]:  # Keep last 10
+    for t in data["completed"][-10:]:
         completed_section += f"- [x] {t['title']} (completed {t.get('completed_at', 'N/A')})\n"
     if not data["completed"]:
         completed_section += "<!-- No completed tasks yet -->\n"
@@ -121,11 +145,18 @@ def _sync_to_user_md(data):
     # Rebuild USER.md with updated sections
     import re
     content = re.sub(
-        r"## Active Tasks\n.*?(?=\n## )", active_section + "\n", content, flags=re.DOTALL
+        r"## Active Tasks\n.*?(?=\n## |\Z)", active_section, content, flags=re.DOTALL
     )
     content = re.sub(
-        r"## Completed Tasks\n.*?(?=\n## )", completed_section + "\n", content, flags=re.DOTALL
+        r"## Completed Tasks\n.*?(?=\n## |\Z)", completed_section, content, flags=re.DOTALL
     )
 
-    with open(USER_MD, "w") as f:
-        f.write(content)
+    # Atomic write
+    try:
+        dir_name = os.path.dirname(USER_MD)
+        fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(tmp_path, USER_MD)
+    except OSError as e:
+        print(f"[Tasks] USER.md sync failed: {e}")

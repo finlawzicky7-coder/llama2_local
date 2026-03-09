@@ -23,7 +23,7 @@ fi
     while true; do
         echo "[$(date)] Starting assistant scheduler..." >> "$LOGFILE"
         cd "$WORKDIR"
-        /usr/local/bin/python -m assistant.scheduler >> "$LOGFILE" 2>&1
+        python3 -m assistant.scheduler >> "$LOGFILE" 2>&1
         echo "[$(date)] Scheduler exited. Restarting in 10s..." >> "$LOGFILE"
         sleep 10
     done

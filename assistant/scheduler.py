@@ -3,9 +3,10 @@
 import time
 import signal
 import sys
+import logging
 from datetime import datetime
 
-from assistant.telegram_bot import send_message, send_daily_summary, get_updates
+from assistant.telegram_bot import send_message, send_daily_summary, get_updates, escape_markdown
 from assistant.task_manager import (
     list_tasks, add_task, complete_task, get_due_reminders, mark_reminder_sent,
 )
@@ -26,11 +27,22 @@ from assistant.opportunity_scorer import (
     format_scored_report,
 )
 
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("scheduler")
 
 POLL_INTERVAL = 10  # Poll Telegram every 10 seconds
 HEAVY_CHECK_INTERVAL = 30 * 60  # 30 minutes for price alerts, reminders
 DAILY_SUMMARY_HOUR = 9
 OPPORTUNITY_CHECK_HOURS = [8, 14, 20]
+
+# Track last-run timestamps to avoid duplicate triggers
+_last_opp_scan_hour = -1
+_last_daily_summary_hour = -1
 
 
 def handle_telegram_commands():
@@ -46,8 +58,8 @@ def handle_telegram_commands():
         try:
             _dispatch_command(text)
         except Exception as e:
-            print(f"[Command] Error handling '{text}': {e}")
-            send_message(f"Error: {e}")
+            log.error("Error handling command '%s': %s", text, e)
+            send_message("Something went wrong processing your command. Try again.")
 
 
 def _dispatch_command(text):
@@ -58,7 +70,7 @@ def _dispatch_command(text):
         if tasks:
             reply = "*Active Tasks:*\n"
             for t in tasks:
-                reply += f"  • [{t['id']}] {t['title']}\n"
+                reply += f"  • \\[{t['id']}] {escape_markdown(t['title'])}\n"
         else:
             reply = "No active tasks."
         send_message(reply)
@@ -67,18 +79,18 @@ def _dispatch_command(text):
         title = text[5:].strip()
         if title:
             task = add_task(title)
-            send_message(f"Task added: *{task['title']}* (ID: {task['id']})")
+            send_message(f"Task added: *{escape_markdown(task['title'])}* (ID: {task['id']})")
 
     elif text.startswith("/done "):
         try:
             task_id = int(text[6:].strip())
             task = complete_task(task_id)
             if task:
-                send_message(f"Completed: *{task['title']}*")
+                send_message(f"Completed: *{escape_markdown(task['title'])}*")
             else:
                 send_message(f"Task {task_id} not found.")
         except ValueError:
-            send_message("Usage: /done <task_id>")
+            send_message("Usage: /done <task\\_id>")
 
     # --- System ---
     elif text.startswith("/health"):
@@ -96,13 +108,15 @@ def _dispatch_command(text):
 
     elif text.startswith("/watchadd "):
         coin = text[10:].strip().lower()
-        wl = add_to_watchlist(coin)
-        send_message(f"Watchlist updated: {', '.join(wl)}")
+        if coin:
+            wl = add_to_watchlist(coin)
+            send_message(f"Watchlist updated: {', '.join(wl)}")
 
     elif text.startswith("/watchdel "):
         coin = text[10:].strip().lower()
-        wl = remove_from_watchlist(coin)
-        send_message(f"Watchlist updated: {', '.join(wl)}")
+        if coin:
+            wl = remove_from_watchlist(coin)
+            send_message(f"Watchlist updated: {', '.join(wl)}")
 
     # --- Opportunities ---
     elif text.startswith("/opps") or text.startswith("/opportunities"):
@@ -123,7 +137,8 @@ def _dispatch_command(text):
             idx = int(text[9:].strip()) - 1
             dismissed = dismiss_opportunity(idx)
             if dismissed:
-                send_message(f"Dismissed: {dismissed.get('title', 'item')[:80]}")
+                title = escape_markdown(dismissed.get("title", "item")[:80])
+                send_message(f"Dismissed: {title}")
             else:
                 send_message("Invalid index.")
         except ValueError:
@@ -149,25 +164,25 @@ def _dispatch_command(text):
     # --- Help ---
     elif text.startswith("/help") or text.startswith("/start"):
         help_text = (
-            "*📋 Task Management*\n"
+            "*Task Management*\n"
             "/tasks — List active tasks\n"
             "/add <title> — Add a new task\n"
             "/done <id> — Complete a task\n\n"
-            "*💰 Market & Crypto*\n"
+            "*Market & Crypto*\n"
             "/prices — Current crypto prices\n"
             "/trending — Trending coins\n"
             "/watchadd <coin> — Add to watchlist\n"
             "/watchdel <coin> — Remove from watchlist\n\n"
-            "*🔍 Opportunities*\n"
+            "*Opportunities*\n"
             "/opps — Scan for new opportunities\n"
             "/top — Top scored opportunities\n"
             "/dismiss <n> — Dismiss opportunity #n\n\n"
-            "*🐙 GitHub*\n"
+            "*GitHub*\n"
             "/repos — Trending repos this week\n"
             "/bounties — Paid/bounty issues\n\n"
-            "*📧 Email*\n"
+            "*Email*\n"
             "/emails — Check inbox for opportunities\n\n"
-            "*🖥️ System*\n"
+            "*System*\n"
             "/health — System health report\n"
             "/help — Show this help message"
         )
@@ -178,13 +193,13 @@ def check_reminders():
     """Send any due reminders."""
     due = get_due_reminders()
     for r in due:
-        send_message(f"⏰ *Reminder:* {r['text']}")
+        send_message(f"⏰ *Reminder:* {escape_markdown(r['text'])}")
         mark_reminder_sent(r["id"])
 
 
 def run_opportunity_scan():
     """Autonomous opportunity scanning — runs at configured hours."""
-    print(f"[{datetime.now()}] Running opportunity scan...")
+    log.info("Running opportunity scan...")
 
     all_opportunities = []
 
@@ -192,7 +207,7 @@ def run_opportunity_scan():
         web_opps = discover_opportunities()
         all_opportunities.extend(web_opps)
     except Exception as e:
-        print(f"[Opportunities] Web scrape error: {e}")
+        log.error("Web scrape error: %s", e)
 
     try:
         repos = find_new_repos_by_language()
@@ -200,7 +215,7 @@ def run_opportunity_scan():
         bounties = find_bounty_issues()
         all_opportunities.extend(bounties)
     except Exception as e:
-        print(f"[Opportunities] GitHub error: {e}")
+        log.error("GitHub error: %s", e)
 
     try:
         emails = check_inbox()
@@ -209,7 +224,7 @@ def run_opportunity_scan():
             if email_report:
                 send_message(email_report)
     except Exception as e:
-        print(f"[Opportunities] Email error: {e}")
+        log.error("Email error: %s", e)
 
     if all_opportunities:
         scored = rank_opportunities(all_opportunities)
@@ -217,18 +232,17 @@ def run_opportunity_scan():
         if top:
             send_message(format_scored_report(top, limit=5))
 
-    print(f"[{datetime.now()}] Opportunity scan complete. Found {len(all_opportunities)} items.")
+    log.info("Opportunity scan complete. Found %d items.", len(all_opportunities))
 
 
 def run_heavy_checks():
     """Run expensive periodic checks (price alerts, opportunities, daily summary)."""
+    global _last_opp_scan_hour, _last_daily_summary_hour
     now = datetime.now()
-    print(f"[{now}] Running heavy checks...")
+    log.info("Running heavy checks...")
 
-    # Check reminders
     check_reminders()
 
-    # Check price alerts
     try:
         alerts = check_price_alerts()
         if alerts:
@@ -236,17 +250,19 @@ def run_heavy_checks():
             if alert_msg:
                 send_message(alert_msg)
     except Exception as e:
-        print(f"[Market] Alert check error: {e}")
+        log.error("Price alert error: %s", e)
 
-    # Run opportunity scan at configured hours
-    if now.hour in OPPORTUNITY_CHECK_HOURS and now.minute < 30:
+    # Run opportunity scan at configured hours (once per hour, not per cycle)
+    if now.hour in OPPORTUNITY_CHECK_HOURS and now.hour != _last_opp_scan_hour:
+        _last_opp_scan_hour = now.hour
         try:
             run_opportunity_scan()
         except Exception as e:
-            print(f"[Opportunities] Scan error: {e}")
+            log.error("Opportunity scan error: %s", e)
 
-    # Send daily summary at configured hour
-    if now.hour == DAILY_SUMMARY_HOUR and now.minute < 30:
+    # Send daily summary (once per day at configured hour)
+    if now.hour == DAILY_SUMMARY_HOUR and now.hour != _last_daily_summary_hour:
+        _last_daily_summary_hour = now.hour
         active = [t["title"] for t in list_tasks("active")]
         completed = [t["title"] for t in list_tasks("completed")[-5:]]
         top_opps = get_top_opportunities(limit=3)
@@ -257,16 +273,16 @@ def run_heavy_checks():
             )
         send_daily_summary(active, completed, notes)
 
-    print(f"[{now}] Heavy checks complete.")
+    log.info("Heavy checks complete.")
 
 
 def run():
     """Main scheduler loop — fast Telegram polling with periodic heavy checks."""
-    print("Autonomous Assistant Scheduler started.")
+    log.info("Autonomous Assistant Scheduler started.")
     send_message("🤖 Assistant is online. Send /help for commands.")
 
     def signal_handler(sig, frame):
-        print("\nShutting down scheduler...")
+        log.info("Shutting down scheduler...")
         send_message("🛑 Assistant scheduler stopped.")
         sys.exit(0)
 
@@ -277,18 +293,16 @@ def run():
 
     while True:
         try:
-            # Fast: poll Telegram for commands every cycle
             handle_telegram_commands()
         except Exception as e:
-            print(f"[Poll] Error: {e}")
+            log.error("Telegram poll error: %s", e)
 
-        # Heavy checks every 30 minutes
         now = time.time()
         if now - last_heavy_check >= HEAVY_CHECK_INTERVAL:
             try:
                 run_heavy_checks()
             except Exception as e:
-                print(f"[Heavy] Error: {e}")
+                log.error("Heavy check error: %s", e)
             last_heavy_check = now
 
         time.sleep(POLL_INTERVAL)

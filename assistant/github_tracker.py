@@ -10,8 +10,11 @@ GITHUB_STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gi
 
 def _load_state():
     if os.path.exists(GITHUB_STATE_FILE):
-        with open(GITHUB_STATE_FILE) as f:
-            return json.load(f)
+        try:
+            with open(GITHUB_STATE_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
     return {
         "languages": ["python", "javascript", "rust", "go"],
         "seen_repos": [],
@@ -26,6 +29,19 @@ def _save_state(data):
         json.dump(data, f, indent=2)
 
 
+def _get_github_token():
+    """Read GitHub token from .env if available."""
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                if line.startswith("GITHUB_TOKEN="):
+                    token = line.strip().split("=", 1)[1]
+                    if token and token != "your_github_token":
+                        return token
+    return None
+
+
 def _fetch_json(url, timeout=15):
     """Fetch a URL and parse JSON response."""
     try:
@@ -33,16 +49,9 @@ def _fetch_json(url, timeout=15):
             "User-Agent": "Mozilla/5.0 (compatible; GHTracker/1.0)",
             "Accept": "application/vnd.github.v3+json",
         })
-        # Add GitHub token if available
-        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
-        if os.path.exists(env_path):
-            with open(env_path) as f:
-                for line in f:
-                    if line.startswith("GITHUB_TOKEN="):
-                        token = line.strip().split("=", 1)[1]
-                        if token:
-                            req.add_header("Authorization", f"token {token}")
-                        break
+        token = _get_github_token()
+        if token:
+            req.add_header("Authorization", f"token {token}")
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())
     except Exception as e:
@@ -60,7 +69,8 @@ def find_trending_repos(language=None, since="weekly"):
     if language:
         query += f" language:{language}"
 
-    url = f"https://api.github.com/search/repositories?q={query}&sort=stars&order=desc&per_page=15"
+    encoded_query = urllib.parse.quote(query) if hasattr(urllib, 'parse') else query
+    url = f"https://api.github.com/search/repositories?q={encoded_query}&sort=stars&order=desc&per_page=15"
     data = _fetch_json(url)
     if not data:
         return []
@@ -71,7 +81,9 @@ def find_trending_repos(language=None, since="weekly"):
         if full_name in seen:
             continue
         repos.append({
+            "source": "GitHub",
             "name": full_name,
+            "title": f"{full_name}: {(repo.get('description') or '')[:120]}",
             "description": (repo.get("description") or "")[:120],
             "stars": repo.get("stargazers_count", 0),
             "language": repo.get("language", "Unknown"),
@@ -85,12 +97,15 @@ def find_trending_repos(language=None, since="weekly"):
     return repos
 
 
+# Need urllib.parse for query encoding
+import urllib.parse
+
+
 def find_bounty_issues():
     """Find GitHub issues with bounty labels (paid work opportunities)."""
     state = _load_state()
     seen = set(state["seen_issues"])
 
-    # Search for issues with bounty-related labels
     queries = [
         'label:bounty state:open',
         'label:"help wanted" label:"good first issue" state:open',
@@ -99,7 +114,8 @@ def find_bounty_issues():
 
     issues = []
     for query in queries:
-        url = f"https://api.github.com/search/issues?q={query}&sort=created&order=desc&per_page=10"
+        encoded = urllib.parse.quote(query)
+        url = f"https://api.github.com/search/issues?q={encoded}&sort=created&order=desc&per_page=10"
         data = _fetch_json(url)
         if not data:
             continue
@@ -108,12 +124,17 @@ def find_bounty_issues():
             issue_url = item["html_url"]
             if issue_url in seen:
                 continue
+
+            # Extract repo name from html_url: https://github.com/owner/repo/issues/123
+            parts = issue_url.split("/")
+            repo_name = "/".join(parts[3:5]) if len(parts) >= 5 else ""
+
             issues.append({
+                "source": "GitHub",
                 "title": item["title"][:120],
-                "repo": item.get("repository_url", "").split("/")[-2:]
-                        if "repository_url" in item else [],
+                "repo": repo_name,
                 "url": issue_url,
-                "labels": [l["name"] for l in item.get("labels", [])[:5]],
+                "labels": [label["name"] for label in item.get("labels", [])[:5]],
                 "created": item.get("created_at", ""),
             })
             seen.add(issue_url)
@@ -129,11 +150,10 @@ def find_new_repos_by_language():
     languages = state.get("languages", ["python", "javascript"])
 
     all_repos = []
-    for lang in languages[:3]:  # Limit API calls
+    for lang in languages[:3]:
         repos = find_trending_repos(language=lang)
         all_repos.extend(repos)
 
-    # Sort by stars descending
     all_repos.sort(key=lambda r: r.get("stars", 0), reverse=True)
     return all_repos[:15]
 
@@ -146,10 +166,12 @@ def format_trending_report(repos, limit=10):
     msg = f"*🔥 {len(repos)} Trending Repos*\n\n"
     for repo in repos[:limit]:
         topics = " ".join(f"`{t}`" for t in repo.get("topics", [])[:3])
+        name = repo.get("name", repo.get("title", "Unknown"))
         msg += (
-            f"⭐ *{repo['stars']}* — [{repo['name']}]({repo['url']})\n"
-            f"  {repo['description']}\n"
-            f"  {repo['language']} {topics}\n\n"
+            f"⭐ *{repo['stars']}* — {name}\n"
+            f"  {repo.get('description', '')}\n"
+            f"  {repo.get('language', '')} {topics}\n"
+            f"  {repo['url']}\n\n"
         )
     return msg
 
@@ -162,7 +184,7 @@ def format_bounty_report(issues, limit=10):
     msg = f"*💎 {len(issues)} Bounty/Paid Issues*\n\n"
     for issue in issues[:limit]:
         labels = ", ".join(issue.get("labels", [])[:3])
-        repo = "/".join(issue.get("repo", []))
+        repo = issue.get("repo", "")
         msg += (
             f"*{issue['title']}*\n"
             f"  `{repo}` | {labels}\n"
