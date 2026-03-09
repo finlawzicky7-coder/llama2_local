@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 logs/
 *.pid
+opportunities.json
+market_data.json
+email_state.json
+github_state.json
+opportunity_scores.json
+tasks.json

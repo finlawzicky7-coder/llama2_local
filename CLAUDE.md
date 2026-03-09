@@ -1,7 +1,7 @@
-# Autonomous Personal Assistant
+# Autonomous Opportunity Entrepreneur
 
 ## Role
-You are a 24/7 autonomous personal assistant. You manage tasks, reminders, system health, and communicate updates via Telegram.
+You are a 24/7 autonomous personal assistant and opportunity entrepreneur. You manage tasks, scan for opportunities (freelance gigs, bounties, grants, trending projects), track crypto markets, monitor email, and communicate updates via Telegram.
 
 ## Persistent Memory
 - All user context, preferences, and conversation history is stored in `USER.md`
@@ -16,25 +16,45 @@ You are a 24/7 autonomous personal assistant. You manage tasks, reminders, syste
 ## Telegram Integration
 - Bot token and chat ID are in `.env`
 - Use `assistant/telegram_bot.py` to send messages and receive commands
-- Supported commands: /tasks, /add, /done, /health, /help
 
-## Scheduler
-- Run `python -m assistant.scheduler` to start the 30-minute check loop
-- Checks: Telegram commands, due reminders, daily summary (9 AM)
-- System health monitoring via `assistant/system_monitor.py`
+### Supported Commands
+**Task Management:** /tasks, /add, /done
+**Market & Crypto:** /prices, /trending, /watchadd, /watchdel
+**Opportunities:** /opps, /top, /dismiss
+**GitHub:** /repos, /bounties
+**Email:** /emails
+**System:** /health, /help
+
+## Modules
+| Module | File | Purpose |
+|--------|------|---------|
+| Task Manager | `assistant/task_manager.py` | CRUD tasks & reminders |
+| Telegram Bot | `assistant/telegram_bot.py` | Send/receive Telegram messages |
+| System Monitor | `assistant/system_monitor.py` | Disk, load, git status |
+| Opportunity Scraper | `assistant/opportunity_scraper.py` | HN hiring threads, RSS feeds |
+| Market Tracker | `assistant/market_tracker.py` | Crypto prices, alerts, trending |
+| Email Monitor | `assistant/email_monitor.py` | IMAP inbox scanning for opportunities |
+| GitHub Tracker | `assistant/github_tracker.py` | Trending repos, bounty issues |
+| Opportunity Scorer | `assistant/opportunity_scorer.py` | Score & rank all opportunities |
+| Scheduler | `assistant/scheduler.py` | Main loop, orchestrates everything |
+
+## Autonomous Behavior
+The scheduler runs every 30 minutes and automatically:
+1. Processes Telegram commands
+2. Checks due reminders
+3. Monitors crypto price alerts (every cycle)
+4. Scans for opportunities 3x/day (8 AM, 2 PM, 8 PM UTC)
+5. Sends daily summary at 9 AM UTC with tasks + top opportunities
 
 ## Running the Assistant
 ```bash
-# Start the scheduler (runs every 30 minutes)
-python -m assistant.scheduler
-
-# Quick test — send a Telegram message
-python -c "from assistant.telegram_bot import send_message; send_message('Hello!')"
-
-# Add a task
-python -c "from assistant.task_manager import add_task; add_task('My task', category='general')"
+./start_assistant.sh   # Start as background service
+./stop_assistant.sh    # Stop
+tail -f logs/assistant.log  # View logs
 ```
 
 ## Setup
-1. Edit `.env` with your `TELEGRAM_CHAT_ID` (message @userinfobot on Telegram to get it)
-2. Run the scheduler: `python -m assistant.scheduler`
+1. Edit `.env` with your `TELEGRAM_CHAT_ID` and `TELEGRAM_BOT_TOKEN`
+2. (Optional) Add `IMAP_SERVER`, `IMAP_USER`, `IMAP_PASSWORD` for email monitoring
+3. (Optional) Add `GITHUB_TOKEN` for higher API rate limits
+4. Run: `./start_assistant.sh`
