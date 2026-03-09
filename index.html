@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PeptideSource — Premium pharmaceutical-grade peptide supplements. BPC-157, GHK-Cu, Collagen Peptides & more. Lab-tested, science-backed, fast shipping.">
+  <meta name="keywords" content="peptide supplements, BPC-157, GHK-Cu, collagen peptides, TB-500, anti-aging, recovery, longevity">
+  <title>PeptideSource — Premium Peptide Supplements | Science-Backed Wellness</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+  <!-- Scroll Progress Bar -->
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <a href="#" class="logo" onclick="navigateTo('home')">
+        <div class="logo-icon">P</div>
+        <span>Peptide<span class="gradient-text">Source</span></span>
+      </a>
+
+      <nav class="nav" id="mainNav">
+        <a href="#" class="nav-link" onclick="navigateTo('home')">Home</a>
+        <a href="#" class="nav-link" onclick="navigateTo('shop')">Shop</a>
+        <a href="#" class="nav-link" onclick="navigateTo('about')">About</a>
+        <a href="#" class="nav-link" onclick="navigateTo('blog')">Blog</a>
+        <a href="#" class="nav-link" onclick="navigateTo('faq')">FAQ</a>
+        <a href="#" class="nav-link" onclick="navigateTo('contact')">Contact</a>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="search-wrapper" id="searchWrapper">
+          <input type="text" class="search-input" id="searchInput" placeholder="Search peptides..." oninput="handleSearch(this.value)" onfocus="this.parentElement.classList.add('expanded')" onblur="setTimeout(()=>this.parentElement.classList.remove('expanded'),200)">
+          <span class="search-icon">&#128269;</span>
+          <div class="search-results" id="searchResults"></div>
+        </div>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">&#127769;</button>
+        <button class="cart-btn" onclick="toggleCart()">
+          &#128722;
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Nav -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="#" class="mobile-nav-link" onclick="navigateTo('home'); toggleMobileMenu()">Home</a>
+    <a href="#" class="mobile-nav-link" onclick="navigateTo('shop'); toggleMobileMenu()">Shop</a>
+    <a href="#" class="mobile-nav-link" onclick="navigateTo('about'); toggleMobileMenu()">About</a>
+    <a href="#" class="mobile-nav-link" onclick="navigateTo('blog'); toggleMobileMenu()">Blog</a>
+    <a href="#" class="mobile-nav-link" onclick="navigateTo('faq'); toggleMobileMenu()">FAQ</a>
+    <a href="#" class="mobile-nav-link" onclick="navigateTo('contact'); toggleMobileMenu()">Contact</a>
+  </nav>
+
+  <!-- ============ CART DRAWER ============ -->
+  <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-header">
+      <h2>Your Cart</h2>
+      <button class="cart-close" onclick="toggleCart()">&times;</button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty">
+        <div class="cart-empty-icon">&#128722;</div>
+        <p>Your cart is empty</p>
+        <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="navigateTo('shop'); toggleCart()">Start Shopping</button>
+      </div>
+    </div>
+    <div class="cart-footer" id="cartFooter" style="display:none">
+      <div class="cart-subtotal">
+        <span>Subtotal</span>
+        <span id="cartSubtotal">$0.00</span>
+      </div>
+      <div class="cart-subtotal">
+        <span>Shipping</span>
+        <span style="color:var(--brand-primary)">FREE</span>
+      </div>
+      <div class="cart-total">
+        <span>Total</span>
+        <span id="cartTotal">$0.00</span>
+      </div>
+      <button class="cart-checkout-btn" onclick="navigateTo('checkout'); toggleCart()">Proceed to Checkout &#8594;</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span class="toast-icon">&#10004;</span>
+    <span id="toastMessage">Item added to cart!</span>
+  </div>
+
+  <!-- Social Proof Popup -->
+  <div class="social-proof-popup" id="socialProofPopup">
+    <div class="social-proof-avatar" id="proofAvatar">JD</div>
+    <div>
+      <div class="social-proof-text"><span class="social-proof-name" id="proofName">John D.</span> just purchased</div>
+      <div class="social-proof-text" id="proofProduct" style="font-weight:600">BPC-157 Oral Capsules</div>
+      <div class="social-proof-time" id="proofTime">2 minutes ago</div>
+    </div>
+  </div>
+
+  <!-- ============ PAGE: HOME ============ -->
+  <main class="page active" id="page-home">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="hero-gradient"></div>
+        <div class="hero-particles" id="heroParticles"></div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-molecule">
+          <div class="molecule-ring"></div>
+          <div class="molecule-ring"></div>
+          <div class="molecule-ring"></div>
+        </div>
+      </div>
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="pulse"></span>
+            TRENDING IN 2026 — Peptide Science
+          </div>
+          <h1 class="heading-xl hero-title">
+            Unlock Your Body's <span class="gradient-text">Peptide Potential</span>
+          </h1>
+          <p class="hero-subtitle">
+            Pharmaceutical-grade peptide supplements backed by 500+ clinical studies. Join 50,000+ biohackers optimizing recovery, longevity, and performance.
+          </p>
+          <div class="hero-cta">
+            <button class="btn btn-primary btn-lg" onclick="navigateTo('shop')">
+              Shop Peptides &#8594;
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="navigateTo('about')">
+              The Science &#9878;
+            </button>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <div class="hero-stat-number gradient-text" data-count="50000">0</div>
+              <div class="hero-stat-label">Happy Customers</div>
+            </div>
+            <div>
+              <div class="hero-stat-number gradient-text" data-count="500">0</div>
+              <div class="hero-stat-label">Clinical Studies</div>
+            </div>
+            <div>
+              <div class="hero-stat-number gradient-text" data-count="99">0</div>
+              <div class="hero-stat-label">% Purity Tested</div>
+            </div>
+            <div>
+              <div class="hero-stat-number gradient-text">24/7</div>
+              <div class="hero-stat-label">Expert Support</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust Bar -->
+    <section class="trust-bar">
+      <div class="trust-scroll">
+        <div class="trust-item"><span class="trust-icon">&#9989;</span> 3rd Party Lab Tested</div>
+        <div class="trust-item"><span class="trust-icon">&#128272;</span> GMP Certified Facility</div>
+        <div class="trust-item"><span class="trust-icon">&#128666;</span> Free Shipping Over $75</div>
+        <div class="trust-item"><span class="trust-icon">&#128176;</span> 90-Day Money Back</div>
+        <div class="trust-item"><span class="trust-icon">&#127757;</span> Made in USA</div>
+        <div class="trust-item"><span class="trust-icon">&#128274;</span> Secure Checkout</div>
+        <div class="trust-item"><span class="trust-icon">&#9734;</span> 4.9/5 Rating (12,000+ reviews)</div>
+        <div class="trust-item"><span class="trust-icon">&#128218;</span> Science-Backed Formulas</div>
+        <!-- Duplicate for infinite scroll -->
+        <div class="trust-item"><span class="trust-icon">&#9989;</span> 3rd Party Lab Tested</div>
+        <div class="trust-item"><span class="trust-icon">&#128272;</span> GMP Certified Facility</div>
+        <div class="trust-item"><span class="trust-icon">&#128666;</span> Free Shipping Over $75</div>
+        <div class="trust-item"><span class="trust-icon">&#128176;</span> 90-Day Money Back</div>
+        <div class="trust-item"><span class="trust-icon">&#127757;</span> Made in USA</div>
+        <div class="trust-item"><span class="trust-icon">&#128274;</span> Secure Checkout</div>
+        <div class="trust-item"><span class="trust-icon">&#9734;</span> 4.9/5 Rating (12,000+ reviews)</div>
+        <div class="trust-item"><span class="trust-icon">&#128218;</span> Science-Backed Formulas</div>
+      </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="section benefits">
+      <div class="container">
+        <div style="text-align:center;margin-bottom:60px">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">WHY PEPTIDESOURCE</p>
+          <h2 class="heading-lg">The Future of Supplementation</h2>
+          <p class="body-lg" style="color:var(--text-secondary);max-width:600px;margin:16px auto 0">Peptides are amino acid chains that signal your body to optimize itself. We deliver them in the purest, most bioavailable forms.</p>
+        </div>
+        <div class="benefits-grid stagger-children">
+          <div class="benefit-card animate-on-scroll">
+            <div class="benefit-icon">&#129516;</div>
+            <h3 class="benefit-title">Clinically Dosed</h3>
+            <p class="benefit-desc">Every product contains clinically studied dosages — no pixie-dusting, no proprietary blends hiding weak formulas.</p>
+          </div>
+          <div class="benefit-card animate-on-scroll">
+            <div class="benefit-icon">&#128300;</div>
+            <h3 class="benefit-title">99%+ Purity</h3>
+            <p class="benefit-desc">HPLC-verified purity with full certificates of analysis. Every batch independently tested by third-party labs.</p>
+          </div>
+          <div class="benefit-card animate-on-scroll">
+            <div class="benefit-icon">&#127981;</div>
+            <h3 class="benefit-title">GMP Manufactured</h3>
+            <p class="benefit-desc">Produced in FDA-registered, cGMP certified facilities in the USA. Pharmaceutical-grade production standards.</p>
+          </div>
+          <div class="benefit-card animate-on-scroll">
+            <div class="benefit-icon">&#128640;</div>
+            <h3 class="benefit-title">Fast Absorption</h3>
+            <p class="benefit-desc">Advanced delivery systems including liposomal encapsulation and enteric coating for maximum bioavailability.</p>
+          </div>
+          <div class="benefit-card animate-on-scroll">
+            <div class="benefit-icon">&#128161;</div>
+            <h3 class="benefit-title">Science-First</h3>
+            <p class="benefit-desc">Formulated by PhD biochemists and reviewed by our Scientific Advisory Board. Every claim is evidence-based.</p>
+          </div>
+          <div class="benefit-card animate-on-scroll">
+            <div class="benefit-icon">&#128588;</div>
+            <h3 class="benefit-title">90-Day Guarantee</h3>
+            <p class="benefit-desc">Not satisfied? Full refund within 90 days, no questions asked. We're that confident in our products.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="section">
+      <div class="container">
+        <div style="text-align:center;margin-bottom:60px">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">SHOP BESTSELLERS</p>
+          <h2 class="heading-lg">Trending Peptides</h2>
+          <p class="body-lg" style="color:var(--text-secondary);max-width:600px;margin:16px auto 0">Our most popular peptide supplements, loved by thousands. Start your optimization journey here.</p>
+        </div>
+        <div class="products-grid" id="featuredProducts"></div>
+        <div style="text-align:center;margin-top:48px">
+          <button class="btn btn-secondary btn-lg" onclick="navigateTo('shop')">View All Products &#8594;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof / Testimonials -->
+    <section class="section" style="background:var(--bg-secondary)">
+      <div class="container">
+        <div style="text-align:center;margin-bottom:60px">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">REAL RESULTS</p>
+          <h2 class="heading-lg">What Our Customers Say</h2>
+        </div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px" id="homeReviews"></div>
+      </div>
+    </section>
+
+    <!-- AI Recommended -->
+    <section class="section recommended-section">
+      <div class="container">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">
+          <div>
+            <p class="caption" style="color:var(--brand-primary);margin-bottom:8px">&#129302; AI-POWERED</p>
+            <h2 class="heading-md">Recommended For You</h2>
+          </div>
+        </div>
+        <div class="recommended-carousel" id="recommendedCarousel"></div>
+      </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="section">
+      <div class="container">
+        <div class="newsletter animate-on-scroll">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">STAY UPDATED</p>
+          <h2 class="heading-md">Get 15% Off Your First Order</h2>
+          <p class="body-md" style="color:var(--text-secondary);max-width:480px;margin:12px auto 0">Join our newsletter for exclusive deals, new product launches, and the latest peptide science.</p>
+          <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+            <input type="email" class="newsletter-input" placeholder="Enter your email" required>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: SHOP ============ -->
+  <main class="page" id="page-shop">
+    <section class="section" style="padding-top:calc(var(--header-height) + 40px)">
+      <div class="container">
+        <div style="margin-bottom:40px">
+          <h1 class="heading-lg">Shop All Peptides</h1>
+          <p class="body-lg" style="color:var(--text-secondary);margin-top:8px">Pharmaceutical-grade peptide supplements for every goal.</p>
+        </div>
+        <div class="filters-bar" id="filtersBar">
+          <button class="filter-btn active" onclick="filterProducts('all')">All</button>
+          <button class="filter-btn" onclick="filterProducts('recovery')">Recovery</button>
+          <button class="filter-btn" onclick="filterProducts('skin')">Skin & Beauty</button>
+          <button class="filter-btn" onclick="filterProducts('collagen')">Collagen</button>
+          <button class="filter-btn" onclick="filterProducts('longevity')">Longevity</button>
+          <button class="filter-btn" onclick="filterProducts('weight')">Weight Management</button>
+          <button class="filter-btn" onclick="filterProducts('cognitive')">Cognitive</button>
+          <button class="filter-btn" onclick="filterProducts('immune')">Immune</button>
+          <select class="sort-select" id="sortSelect" onchange="sortProducts(this.value)">
+            <option value="featured">Featured</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="rating">Highest Rated</option>
+            <option value="reviews">Most Reviewed</option>
+          </select>
+        </div>
+        <div class="products-grid" id="shopProducts"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: PRODUCT DETAIL ============ -->
+  <main class="page" id="page-product">
+    <section class="section product-detail">
+      <div class="container">
+        <div class="product-detail-grid">
+          <!-- Gallery -->
+          <div class="product-gallery">
+            <div class="gallery-main" id="galleryMain">
+              <div id="productMainImage" style="font-size:6rem;opacity:0.6">&#129516;</div>
+              <button class="gallery-3d-toggle" onclick="toggle3DView()">
+                &#127922; 3D View
+              </button>
+            </div>
+            <div class="gallery-thumbs" id="galleryThumbs">
+              <button class="gallery-thumb active">&#129516;</button>
+              <button class="gallery-thumb">&#128300;</button>
+              <button class="gallery-thumb">&#128230;</button>
+              <button class="gallery-thumb">&#128203;</button>
+            </div>
+            <!-- 3D Canvas -->
+            <div id="threeDContainer" style="display:none;aspect-ratio:1;background:var(--bg-tertiary);border-radius:var(--radius-lg);margin-top:16px;position:relative">
+              <canvas id="threeDCanvas" style="width:100%;height:100%;border-radius:var(--radius-lg)"></canvas>
+              <p style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:0.8rem;color:var(--text-tertiary)">Drag to rotate &#8226; Scroll to zoom</p>
+            </div>
+          </div>
+
+          <!-- Product Info -->
+          <div class="product-detail-info">
+            <div class="detail-breadcrumb">
+              <a href="#" onclick="navigateTo('home')">Home</a> /
+              <a href="#" onclick="navigateTo('shop')">Shop</a> /
+              <span id="detailBreadcrumb">Product</span>
+            </div>
+            <h1 class="detail-title" id="detailTitle">Product Name</h1>
+            <div class="detail-reviews-summary">
+              <span class="stars" id="detailStars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+              <span id="detailRating">4.9</span>
+              <span style="color:var(--text-tertiary)">(<span id="detailReviewCount">0</span> reviews)</span>
+              <span style="color:var(--brand-primary);font-weight:600" id="detailBadge">Best Seller</span>
+            </div>
+
+            <div class="detail-price-block">
+              <div style="display:flex;align-items:center;flex-wrap:wrap">
+                <span class="detail-price" id="detailPrice">$89.99</span>
+                <span class="detail-original-price" id="detailOriginalPrice">$129.99</span>
+                <span class="detail-save-badge" id="detailSave">Save 31%</span>
+              </div>
+              <div class="detail-subscription">
+                &#128260; Subscribe & Save 20% — <strong id="detailSubPrice">$71.99/mo</strong> <a href="#" style="color:var(--brand-primary);margin-left:8px">Learn more</a>
+              </div>
+              <div class="pricing-timer">
+                <span style="font-size:0.8rem;font-weight:600;color:#e74c3c">&#9200; Flash price ends in:</span>
+                <div class="timer-block"><div class="timer-number" id="timerHours">04</div><div class="timer-label">Hrs</div></div>
+                <span class="timer-separator">:</span>
+                <div class="timer-block"><div class="timer-number" id="timerMins">32</div><div class="timer-label">Min</div></div>
+                <span class="timer-separator">:</span>
+                <div class="timer-block"><div class="timer-number" id="timerSecs">15</div><div class="timer-label">Sec</div></div>
+              </div>
+            </div>
+
+            <div class="product-scarcity" id="detailScarcity">
+              <span class="scarcity-dot"></span>
+              Only <strong>23</strong> left in stock — selling fast!
+            </div>
+
+            <p class="detail-description" id="detailDescription">Product description goes here.</p>
+
+            <div class="detail-benefits" id="detailBenefits"></div>
+
+            <div style="margin-bottom:12px;font-weight:600;font-size:0.9rem">Dosage: <span style="color:var(--text-secondary);font-weight:400" id="detailDosage"></span></div>
+
+            <div class="quantity-selector">
+              <button class="qty-btn" onclick="updateQty(-1)">&#8722;</button>
+              <div class="qty-value" id="qtyValue">1</div>
+              <button class="qty-btn" onclick="updateQty(1)">&#43;</button>
+            </div>
+
+            <button class="btn btn-primary detail-add-to-cart" onclick="addDetailToCart()">
+              &#128722; Add to Cart — <span id="detailCartPrice">$89.99</span>
+            </button>
+            <button class="detail-buy-now" onclick="buyNow()">Buy Now</button>
+
+            <div class="detail-guarantees">
+              <div class="guarantee-item">
+                <div class="guarantee-icon">&#128666;</div>
+                <div class="guarantee-text">Free Shipping</div>
+              </div>
+              <div class="guarantee-item">
+                <div class="guarantee-icon">&#128260;</div>
+                <div class="guarantee-text">90-Day Returns</div>
+              </div>
+              <div class="guarantee-item">
+                <div class="guarantee-icon">&#128272;</div>
+                <div class="guarantee-text">GMP Certified</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div style="margin-top:80px">
+          <h2 class="heading-md" style="margin-bottom:32px">Customer Reviews</h2>
+          <div class="reviews-summary">
+            <div class="reviews-average">
+              <div class="reviews-average-number gradient-text" id="reviewAvg">4.9</div>
+              <div class="stars" style="font-size:1.2rem">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+              <div style="color:var(--text-tertiary);font-size:0.85rem;margin-top:4px"><span id="reviewTotal">2,847</span> reviews</div>
+            </div>
+            <div class="reviews-bars">
+              <div class="review-bar-row"><span>5 &#9733;</span><div class="review-bar-track"><div class="review-bar-fill" style="width:82%"></div></div><span>82%</span></div>
+              <div class="review-bar-row"><span>4 &#9733;</span><div class="review-bar-track"><div class="review-bar-fill" style="width:12%"></div></div><span>12%</span></div>
+              <div class="review-bar-row"><span>3 &#9733;</span><div class="review-bar-track"><div class="review-bar-fill" style="width:4%"></div></div><span>4%</span></div>
+              <div class="review-bar-row"><span>2 &#9733;</span><div class="review-bar-track"><div class="review-bar-fill" style="width:1%"></div></div><span>1%</span></div>
+              <div class="review-bar-row"><span>1 &#9733;</span><div class="review-bar-track"><div class="review-bar-fill" style="width:1%"></div></div><span>1%</span></div>
+            </div>
+          </div>
+          <div id="productReviews"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: ABOUT ============ -->
+  <main class="page" id="page-about">
+    <section class="section about-hero">
+      <div class="container">
+        <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">OUR STORY</p>
+        <h1 class="heading-xl" style="max-width:800px;margin:0 auto 24px">We're on a Mission to Make <span class="gradient-text">Peptide Science</span> Accessible</h1>
+        <p class="body-lg" style="color:var(--text-secondary);max-width:640px;margin:0 auto">Founded by biochemists and biohackers, PeptideSource bridges the gap between cutting-edge research and consumer supplements. Every product we create starts in the lab and ends with real results.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container">
+        <h2 class="heading-md" style="text-align:center;margin-bottom:48px">Our Values</h2>
+        <div class="about-values stagger-children">
+          <div class="value-card animate-on-scroll">
+            <div class="value-icon">&#128300;</div>
+            <h3 class="value-title">Radical Transparency</h3>
+            <p class="value-desc">Full ingredient disclosure, published COAs, and open-source formulation rationale. No secrets, no proprietary blends.</p>
+          </div>
+          <div class="value-card animate-on-scroll">
+            <div class="value-icon">&#127891;</div>
+            <h3 class="value-title">Education First</h3>
+            <p class="value-desc">We publish research reviews, dosage guides, and mechanism explainers. An informed customer is our best customer.</p>
+          </div>
+          <div class="value-card animate-on-scroll">
+            <div class="value-icon">&#129504;</div>
+            <h3 class="value-title">Innovation</h3>
+            <p class="value-desc">Our R&D team continuously explores novel peptide sequences and delivery methods. We launch 2-3 new products per quarter.</p>
+          </div>
+          <div class="value-card animate-on-scroll">
+            <div class="value-icon">&#127793;</div>
+            <h3 class="value-title">Sustainability</h3>
+            <p class="value-desc">Carbon-neutral shipping, recyclable packaging, and ethical sourcing. Building health shouldn't cost the planet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section" style="background:var(--bg-secondary)">
+      <div class="container" style="text-align:center">
+        <h2 class="heading-md" style="margin-bottom:48px">By the Numbers</h2>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          <div class="animate-on-scroll"><div class="heading-xl gradient-text">50K+</div><p style="color:var(--text-secondary)">Customers Worldwide</p></div>
+          <div class="animate-on-scroll"><div class="heading-xl gradient-text">12</div><p style="color:var(--text-secondary)">Peptide Products</p></div>
+          <div class="animate-on-scroll"><div class="heading-xl gradient-text">99.4%</div><p style="color:var(--text-secondary)">Average Purity</p></div>
+          <div class="animate-on-scroll"><div class="heading-xl gradient-text">4.8</div><p style="color:var(--text-secondary)">Average Rating</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: FAQ ============ -->
+  <main class="page" id="page-faq">
+    <section class="section" style="padding-top:calc(var(--header-height) + 40px)">
+      <div class="container" style="max-width:800px">
+        <div style="text-align:center;margin-bottom:48px">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">HELP CENTER</p>
+          <h1 class="heading-lg">Frequently Asked Questions</h1>
+        </div>
+        <div id="faqContainer">
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">What are peptide supplements? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Peptide supplements contain short chains of amino acids (typically 2-50 amino acids long) that act as signaling molecules in the body. Unlike proteins, peptides are small enough to be absorbed efficiently and can target specific biological pathways for recovery, skin health, cognitive function, and more.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">Are your peptides safe? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Yes. All our products are manufactured in FDA-registered, cGMP certified facilities. Every batch undergoes third-party testing for purity, potency, and contaminants. Our formulations use clinically studied dosages and are designed for oral supplementation. Always consult your healthcare provider before starting any supplement.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">How long until I see results? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Most customers report noticeable effects within 2-4 weeks of consistent use. Some products like collagen peptides may take 6-8 weeks for visible skin and joint benefits. Recovery peptides like BPC-157 often produce faster results. Individual results vary based on health status, dosage, and lifestyle factors.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">Do you ship internationally? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Yes! We ship to over 40 countries. US orders over $75 qualify for free shipping. International shipping rates and delivery times vary by location. All international orders include tracking and are shipped in discreet, temperature-controlled packaging.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">What is your return policy? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">We offer a 90-day money-back guarantee on all products. If you're not completely satisfied, contact our support team for a full refund — no questions asked. Opened products are eligible for refund. We believe in our products that much.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">Can I stack multiple peptides? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Yes, many peptides work synergistically when combined. Popular stacks include BPC-157 + TB-500 for recovery, and GHK-Cu + Collagen for skin. Our Pentadecapeptide Stack is pre-formulated for optimal synergy. Check our blog for stacking guides, or ask our AI assistant for personalized recommendations.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">How are your peptides different from competitors? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Three key differentiators: (1) Our purity averages 99.4% vs. industry standard of 95%. (2) We use advanced delivery systems like liposomal encapsulation for 3-5x better absorption. (3) Full transparency — we publish every COA, every ingredient amount, and the research behind every formula. No proprietary blends.</div></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" onclick="toggleFaq(this)">Are peptide supplements legal? <span class="faq-arrow">&#9660;</span></button>
+            <div class="faq-answer"><div class="faq-answer-inner">Yes. Our products are dietary supplements sold in compliance with FDA regulations. They contain peptide analogs and supporting compounds formulated for oral supplementation. They are not drugs, research chemicals, or controlled substances. All products are legal for purchase and use in the United States and most countries.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: CONTACT ============ -->
+  <main class="page" id="page-contact">
+    <section class="section" style="padding-top:calc(var(--header-height) + 40px)">
+      <div class="container">
+        <div style="text-align:center;margin-bottom:60px">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">GET IN TOUCH</p>
+          <h1 class="heading-lg">Contact Us</h1>
+          <p class="body-lg" style="color:var(--text-secondary);max-width:600px;margin:12px auto 0">Have questions about peptides or need help with an order? Our team of experts is here for you.</p>
+        </div>
+        <div class="contact-grid">
+          <div>
+            <div class="contact-method">
+              <div class="contact-icon">&#128231;</div>
+              <div>
+                <h3 style="font-weight:600;margin-bottom:4px">Email</h3>
+                <p style="color:var(--text-secondary)">support@peptidesource.com</p>
+                <p style="color:var(--text-tertiary);font-size:0.8rem">We respond within 2 hours</p>
+              </div>
+            </div>
+            <div class="contact-method">
+              <div class="contact-icon">&#128222;</div>
+              <div>
+                <h3 style="font-weight:600;margin-bottom:4px">Phone</h3>
+                <p style="color:var(--text-secondary)">1-888-PEPTIDE</p>
+                <p style="color:var(--text-tertiary);font-size:0.8rem">Mon-Fri, 9am-6pm EST</p>
+              </div>
+            </div>
+            <div class="contact-method">
+              <div class="contact-icon">&#128172;</div>
+              <div>
+                <h3 style="font-weight:600;margin-bottom:4px">Live Chat</h3>
+                <p style="color:var(--text-secondary)">Chat with our AI peptide expert</p>
+                <p style="color:var(--text-tertiary);font-size:0.8rem">Available 24/7</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <form onsubmit="handleContactSubmit(event)" style="background:var(--bg-card);padding:32px;border-radius:var(--radius-lg);border:1px solid var(--border-light)">
+              <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" placeholder="Your name" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" placeholder="you@example.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Subject</label>
+                <select class="form-input">
+                  <option>General Question</option>
+                  <option>Order Support</option>
+                  <option>Product Question</option>
+                  <option>Wholesale Inquiry</option>
+                  <option>Press/Media</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Message</label>
+                <textarea class="form-input" rows="5" placeholder="How can we help?" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%">Send Message &#8594;</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: BLOG ============ -->
+  <main class="page" id="page-blog">
+    <section class="section" style="padding-top:calc(var(--header-height) + 40px)">
+      <div class="container">
+        <div style="text-align:center;margin-bottom:60px">
+          <p class="caption" style="color:var(--brand-primary);margin-bottom:12px">PEPTIDE SCIENCE</p>
+          <h1 class="heading-lg">The PeptideSource Blog</h1>
+          <p class="body-lg" style="color:var(--text-secondary);max-width:600px;margin:12px auto 0">Evidence-based articles on peptide science, supplement guides, and the latest research.</p>
+        </div>
+        <div class="blog-grid" id="blogGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: CHECKOUT ============ -->
+  <main class="page" id="page-checkout">
+    <section class="section">
+      <div class="container">
+        <div class="checkout-grid">
+          <div class="checkout-form">
+            <h2>Checkout</h2>
+            <h3 style="font-size:1.1rem;font-weight:600;margin-bottom:16px">Contact Information</h3>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" placeholder="you@example.com" required>
+            </div>
+            <h3 style="font-size:1.1rem;font-weight:600;margin:24px 0 16px">Shipping Address</h3>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">First Name</label><input type="text" class="form-input" required></div>
+              <div class="form-group"><label class="form-label">Last Name</label><input type="text" class="form-input" required></div>
+            </div>
+            <div class="form-group"><label class="form-label">Address</label><input type="text" class="form-input" placeholder="Street address" required></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">City</label><input type="text" class="form-input" required></div>
+              <div class="form-group"><label class="form-label">State</label><input type="text" class="form-input" required></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">ZIP Code</label><input type="text" class="form-input" required></div>
+              <div class="form-group"><label class="form-label">Country</label><select class="form-input"><option>United States</option><option>Canada</option><option>United Kingdom</option><option>Australia</option></select></div>
+            </div>
+            <h3 style="font-size:1.1rem;font-weight:600;margin:24px 0 16px">Payment</h3>
+            <div class="form-group"><label class="form-label">Card Number</label><input type="text" class="form-input" placeholder="1234 5678 9012 3456" required></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Expiry</label><input type="text" class="form-input" placeholder="MM/YY" required></div>
+              <div class="form-group"><label class="form-label">CVC</label><input type="text" class="form-input" placeholder="123" required></div>
+            </div>
+            <button class="btn btn-primary btn-lg" style="width:100%;margin-top:24px" onclick="handleCheckout()">
+              &#128274; Place Order
+            </button>
+            <p style="text-align:center;font-size:0.8rem;color:var(--text-tertiary);margin-top:12px">Secured with 256-bit SSL encryption</p>
+          </div>
+          <div class="checkout-summary">
+            <h3 style="font-weight:700;margin-bottom:24px">Order Summary</h3>
+            <div id="checkoutItems"></div>
+            <div style="border-top:1px solid var(--border-light);padding-top:16px;margin-top:16px">
+              <div class="cart-subtotal"><span>Subtotal</span><span id="checkoutSubtotal">$0.00</span></div>
+              <div class="cart-subtotal"><span>Shipping</span><span style="color:var(--brand-primary)">FREE</span></div>
+              <div class="cart-subtotal"><span>Tax (est.)</span><span id="checkoutTax">$0.00</span></div>
+              <div class="cart-total" style="margin-top:12px"><span>Total</span><span id="checkoutTotal">$0.00</span></div>
+            </div>
+            <div style="margin-top:24px;padding:16px;background:rgba(0,212,170,0.08);border-radius:var(--radius-sm);font-size:0.85rem">
+              &#128274; Your payment is secured and encrypted. We never store your card details.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer" id="mainFooter">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <div class="logo-icon">P</div>
+            <span>Peptide<span class="gradient-text">Source</span></span>
+          </div>
+          <p>Premium pharmaceutical-grade peptide supplements backed by science. Trusted by 50,000+ customers worldwide.</p>
+          <div class="footer-socials" style="margin-top:20px">
+            <a href="#" class="footer-social" aria-label="Twitter">&#120143;</a>
+            <a href="#" class="footer-social" aria-label="Instagram">&#128247;</a>
+            <a href="#" class="footer-social" aria-label="YouTube">&#9654;</a>
+            <a href="#" class="footer-social" aria-label="TikTok">&#127925;</a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-title">Shop</h4>
+          <ul class="footer-links">
+            <li><a href="#" onclick="filterProducts('recovery');navigateTo('shop')">Recovery</a></li>
+            <li><a href="#" onclick="filterProducts('skin');navigateTo('shop')">Skin & Beauty</a></li>
+            <li><a href="#" onclick="filterProducts('longevity');navigateTo('shop')">Longevity</a></li>
+            <li><a href="#" onclick="filterProducts('cognitive');navigateTo('shop')">Cognitive</a></li>
+            <li><a href="#" onclick="navigateTo('shop')">All Products</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-title">Company</h4>
+          <ul class="footer-links">
+            <li><a href="#" onclick="navigateTo('about')">About Us</a></li>
+            <li><a href="#" onclick="navigateTo('blog')">Blog</a></li>
+            <li><a href="#" onclick="navigateTo('contact')">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Press</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-title">Support</h4>
+          <ul class="footer-links">
+            <li><a href="#" onclick="navigateTo('faq')">FAQ</a></li>
+            <li><a href="#">Shipping Info</a></li>
+            <li><a href="#">Returns</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 PeptideSource. All rights reserved. These statements have not been evaluated by the FDA. Products are not intended to diagnose, treat, cure, or prevent any disease.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ AI CHATBOT ============ -->
+  <button class="chatbot-trigger" id="chatbotTrigger" onclick="toggleChatbot()">&#129302;</button>
+  <div class="chatbot-window" id="chatbotWindow">
+    <div class="chatbot-header">
+      <div class="chatbot-avatar">&#129302;</div>
+      <div>
+        <div class="chatbot-name">PeptideAI Assistant</div>
+        <div class="chatbot-status">Powered by Hugging Face &#8226; Online</div>
+      </div>
+      <button class="chatbot-close" onclick="toggleChatbot()">&times;</button>
+    </div>
+    <div class="chatbot-messages" id="chatbotMessages">
+      <div class="chat-message bot">
+        Hey there! &#128075; I'm your PeptideAI assistant. I can help you find the right peptide supplement, answer questions about dosing, stacking, and science. What can I help with?
+      </div>
+    </div>
+    <div class="chatbot-chips" id="chatbotChips">
+      <button class="chatbot-chip" onclick="sendChatMessage('What peptide is best for recovery?')">Best for recovery?</button>
+      <button class="chatbot-chip" onclick="sendChatMessage('How do I stack peptides?')">Stacking guide</button>
+      <button class="chatbot-chip" onclick="sendChatMessage('What are the benefits of BPC-157?')">BPC-157 benefits</button>
+      <button class="chatbot-chip" onclick="sendChatMessage('Which peptide helps with anti-aging?')">Anti-aging</button>
+    </div>
+    <div class="chatbot-input-area">
+      <input type="text" class="chatbot-input" id="chatbotInput" placeholder="Ask about peptides..." onkeydown="if(event.key==='Enter')sendChatFromInput()">
+      <button class="chatbot-send" onclick="sendChatFromInput()">&#10148;</button>
+    </div>
+  </div>
+
+  <script src="src/js/app.js"></script>
+</body>
+</html>

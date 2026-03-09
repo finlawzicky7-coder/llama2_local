@@ -1,0 +1,68 @@
+[
+  {
+    "id": "peptide-revolution-2026",
+    "title": "The Peptide Revolution: Why 2026 Is the Year of Peptide Supplements",
+    "excerpt": "From biohackers to mainstream wellness, peptides have exploded onto the scene. Here's the science behind the trend and what it means for your health.",
+    "author": "Dr. Sarah Chen",
+    "date": "2026-03-01",
+    "readTime": "8 min",
+    "category": "Science",
+    "image": "blog-peptide-revolution.svg",
+    "tags": ["peptides", "science", "trends"]
+  },
+  {
+    "id": "bpc157-complete-guide",
+    "title": "BPC-157: The Complete Guide to the Body Protection Compound",
+    "excerpt": "Everything you need to know about BPC-157 — the gut-healing, tissue-repairing peptide that researchers and athletes can't stop talking about.",
+    "author": "Dr. Marcus Webb",
+    "date": "2026-02-22",
+    "readTime": "12 min",
+    "category": "Education",
+    "image": "blog-bpc157.svg",
+    "tags": ["bpc-157", "gut-health", "recovery"]
+  },
+  {
+    "id": "collagen-peptides-myths",
+    "title": "5 Collagen Peptide Myths Debunked by Science",
+    "excerpt": "Separating fact from fiction: what the latest clinical trials actually say about collagen peptide supplementation.",
+    "author": "Dr. Lisa Park",
+    "date": "2026-02-15",
+    "readTime": "6 min",
+    "category": "Myth Busting",
+    "image": "blog-collagen.svg",
+    "tags": ["collagen", "science", "myths"]
+  },
+  {
+    "id": "peptides-vs-sarms",
+    "title": "Peptides vs SARMs: Understanding the Difference",
+    "excerpt": "Why peptide supplements are the safer, legal, and more effective alternative to SARMs for performance and recovery.",
+    "author": "Dr. James Rivera",
+    "date": "2026-02-08",
+    "readTime": "10 min",
+    "category": "Comparison",
+    "image": "blog-comparison.svg",
+    "tags": ["peptides", "sarms", "comparison"]
+  },
+  {
+    "id": "longevity-peptides-guide",
+    "title": "The Longevity Peptide Protocol: Epithalon, FOXO4-DRI & Beyond",
+    "excerpt": "How cutting-edge peptides are being used in anti-aging protocols to extend healthspan and target the root causes of aging.",
+    "author": "Dr. Sarah Chen",
+    "date": "2026-01-30",
+    "readTime": "15 min",
+    "category": "Longevity",
+    "image": "blog-longevity.svg",
+    "tags": ["longevity", "anti-aging", "epithalon"]
+  },
+  {
+    "id": "peptide-stacking-101",
+    "title": "Peptide Stacking 101: How to Combine Peptides Safely",
+    "excerpt": "A beginner-friendly guide to combining peptide supplements for synergistic benefits without overdoing it.",
+    "author": "Dr. Marcus Webb",
+    "date": "2026-01-22",
+    "readTime": "9 min",
+    "category": "Education",
+    "image": "blog-stacking.svg",
+    "tags": ["stacking", "guide", "safety"]
+  }
+]
