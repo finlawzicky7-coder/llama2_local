@@ -3,7 +3,8 @@
 > This file is maintained by your autonomous assistant. It stores context, preferences, and task history across sessions.
 
 ## User Profile
-- **Name**: (not yet set)
+- **Name**: Jacob Gier
+- **Telegram**: @rustypython
 - **Timezone**: (not yet set)
 - **Preferred communication**: Telegram
 
