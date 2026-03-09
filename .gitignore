@@ -10,3 +10,5 @@ github_state.json
 opportunity_scores.json
 tasks.json
 .telegram_offset
+.scheduler_state.json
+invoices.json
