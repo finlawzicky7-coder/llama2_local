@@ -22,6 +22,7 @@ You are a 24/7 autonomous personal assistant and opportunity entrepreneur. You m
 **Market & Crypto:** /prices, /signals, /trending, /watchadd, /watchdel
 **Opportunities:** /opps, /top, /dismiss
 **GitHub:** /repos, /bounties
+**Invoices & Clawback:** /invoice, /invoices, /paid, /overdue, /outstanding, /nudge, /dispute, /writeoff
 **Earnings:** /earned, /earnings
 **Email:** /emails
 **System:** /health, /help
@@ -37,15 +38,17 @@ You are a 24/7 autonomous personal assistant and opportunity entrepreneur. You m
 | Email Monitor | `assistant/email_monitor.py` | IMAP inbox scanning for opportunities |
 | GitHub Tracker | `assistant/github_tracker.py` | Trending repos, bounty issues |
 | Opportunity Scorer | `assistant/opportunity_scorer.py` | Score & rank all opportunities |
+| Invoice Tracker | `assistant/invoice_tracker.py` | Invoice tracking, clawback, follow-ups |
 | Scheduler | `assistant/scheduler.py` | Main loop, orchestrates everything |
 
 ## Autonomous Behavior
 The scheduler runs every 30 minutes and automatically:
 1. Processes Telegram commands
 2. Checks due reminders
-3. Monitors crypto price alerts (every cycle)
-4. Scans for opportunities 3x/day (8 AM, 2 PM, 8 PM UTC)
-5. Sends daily summary at 9 AM UTC with tasks + top opportunities
+3. Checks overdue invoices and sends follow-up alerts
+4. Monitors crypto price alerts + trading signals (every cycle)
+5. Scans for opportunities 3x/day (8 AM, 2 PM, 8 PM UTC)
+6. Sends daily summary at 9 AM UTC with tasks + top opportunities
 
 ## Running the Assistant
 ```bash

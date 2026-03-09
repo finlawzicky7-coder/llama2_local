@@ -30,6 +30,13 @@ from assistant.opportunity_scorer import (
     rank_opportunities, get_top_opportunities, dismiss_opportunity,
     format_scored_report, log_earning, format_earnings_report,
 )
+from assistant.invoice_tracker import (
+    create_invoice, record_payment, list_invoices, check_overdue,
+    get_followup_needed, record_followup, generate_followup_message,
+    get_outstanding_summary, mark_disputed, write_off,
+    format_invoices_list, format_overdue_alert, format_followup_alert,
+    format_outstanding_summary,
+)
 
 # Setup logging
 logging.basicConfig(
@@ -275,6 +282,136 @@ def _dispatch_command(text):
     elif text.startswith("/earnings"):
         send_message(format_earnings_report())
 
+    # --- Invoice / Clawback ---
+    elif text.startswith("/invoice "):
+        # /invoice 500 ClientName API integration work
+        parts = text[9:].strip().split(None, 2)
+        if len(parts) >= 2:
+            try:
+                amount = float(parts[0].replace("$", "").replace(",", ""))
+                client = parts[1]
+                desc = parts[2] if len(parts) > 2 else ""
+                inv = create_invoice(client, amount, desc)
+                send_message(
+                    f"Invoice *#{inv['id']}* created\n"
+                    f"  Client: *{escape_markdown(client)}*\n"
+                    f"  Amount: *${amount:,.2f}*\n"
+                    f"  Due: {inv['due_date']} ({inv['net_terms']})"
+                )
+            except ValueError:
+                send_message("Usage: /invoice <amount> <client> [description]")
+        else:
+            send_message("Usage: /invoice 500 Acme API integration work")
+
+    elif text.startswith("/invoices"):
+        status_filter = None
+        arg = text[9:].strip().lower()
+        if arg in ("overdue", "pending", "paid", "partial", "disputed"):
+            status_filter = arg
+        invoices = list_invoices(status_filter)
+        title = f"📋 {status_filter.title()} Invoices" if status_filter else "📋 All Invoices"
+        send_message(format_invoices_list(invoices, title))
+
+    elif text.startswith("/paid "):
+        # /paid 3 500 partial payment note
+        parts = text[6:].strip().split(None, 2)
+        if len(parts) >= 2:
+            try:
+                inv_id = int(parts[0])
+                amount = float(parts[1].replace("$", "").replace(",", ""))
+                note = parts[2] if len(parts) > 2 else ""
+                inv = record_payment(inv_id, amount, note)
+                if inv:
+                    owed = inv["amount"] - inv.get("paid_amount", 0)
+                    if inv["status"] == "paid":
+                        send_message(f"✅ Invoice *#{inv_id}* fully paid! *${inv['amount']:,.2f}*")
+                    else:
+                        send_message(
+                            f"💰 *${amount:,.2f}* payment recorded for invoice *#{inv_id}*\n"
+                            f"  Remaining: *${owed:,.2f}*"
+                        )
+                else:
+                    send_message(f"Invoice #{parts[0]} not found.")
+            except ValueError:
+                send_message("Usage: /paid <invoice\\_id> <amount> [note]")
+        else:
+            send_message("Usage: /paid 3 500")
+
+    elif text.startswith("/overdue"):
+        overdue = check_overdue()
+        all_overdue = list_invoices("overdue")
+        if all_overdue:
+            send_message(format_overdue_alert(all_overdue))
+        else:
+            send_message("No overdue invoices.")
+
+    elif text.startswith("/nudge "):
+        try:
+            inv_id = int(text[7:].strip())
+            followups = get_followup_needed()
+            target = None
+            for f in followups:
+                if f["id"] == inv_id:
+                    target = f
+                    break
+            if not target:
+                # Still generate for any overdue invoice
+                inv_list = list_invoices("overdue") + list_invoices("partial")
+                for inv in inv_list:
+                    if inv["id"] == inv_id:
+                        try:
+                            due = datetime.strptime(inv["due_date"], "%Y-%m-%d")
+                            days = (datetime.now() - due).days
+                        except ValueError:
+                            days = 0
+                        target = {**inv, "days_overdue": max(days, 0), "followup_number": inv.get("followups_sent", 0) + 1}
+                        break
+
+            if target:
+                msg_template = generate_followup_message(target)
+                record_followup(inv_id)
+                send_message(
+                    f"*📬 Follow-up #{msg_template['followup_number']}* (tone: {msg_template['tone']})\n\n"
+                    f"*Subject:* {escape_markdown(msg_template['subject'])}\n\n"
+                    f"```\n{msg_template['body']}\n```\n\n"
+                    f"_Copy and send to client. Follow-up logged._"
+                )
+            else:
+                send_message(f"Invoice #{inv_id} not found or not overdue.")
+        except ValueError:
+            send_message("Usage: /nudge <invoice\\_id>")
+
+    elif text.startswith("/outstanding"):
+        summary = get_outstanding_summary()
+        send_message(format_outstanding_summary(summary))
+
+    elif text.startswith("/writeoff "):
+        try:
+            inv_id = int(text[10:].strip())
+            inv = write_off(inv_id)
+            if inv:
+                send_message(f"❌ Invoice *#{inv_id}* written off (${inv['amount']:,.2f})")
+            else:
+                send_message(f"Invoice #{inv_id} not found.")
+        except ValueError:
+            send_message("Usage: /writeoff <invoice\\_id>")
+
+    elif text.startswith("/dispute "):
+        parts = text[9:].strip().split(None, 1)
+        if parts:
+            try:
+                inv_id = int(parts[0])
+                reason = parts[1] if len(parts) > 1 else ""
+                inv = mark_disputed(inv_id, reason)
+                if inv:
+                    send_message(f"⚠️ Invoice *#{inv_id}* marked as disputed")
+                else:
+                    send_message(f"Invoice #{inv_id} not found.")
+            except ValueError:
+                send_message("Usage: /dispute <invoice\\_id> [reason]")
+        else:
+            send_message("Usage: /dispute <invoice\\_id> [reason]")
+
     # --- Trading Signals ---
     elif text.startswith("/signals"):
         signals = calculate_signals()
@@ -313,6 +450,15 @@ def _dispatch_command(text):
             "*GitHub*\n"
             "/repos — Trending repos this week\n"
             "/bounties — Paid/bounty issues\n\n"
+            "*Invoices & Clawback*\n"
+            "/invoice <amt> <client> — Create invoice\n"
+            "/invoices [status] — List invoices\n"
+            "/paid <id> <amt> — Record payment\n"
+            "/overdue — Show overdue invoices\n"
+            "/outstanding — Outstanding balance summary\n"
+            "/nudge <id> — Generate follow-up message\n"
+            "/dispute <id> — Mark as disputed\n"
+            "/writeoff <id> — Write off invoice\n\n"
             "*Earnings*\n"
             "/earned <amt> <source> — Log income\n"
             "/earnings — View earnings summary\n\n"
@@ -377,6 +523,22 @@ def run_heavy_checks():
     log.info("Running heavy checks...")
 
     check_reminders()
+
+    # Check for overdue invoices and needed follow-ups
+    try:
+        newly_overdue = check_overdue()
+        if newly_overdue:
+            alert = format_overdue_alert(newly_overdue)
+            if alert:
+                send_message(alert)
+
+        followups = get_followup_needed()
+        if followups:
+            alert = format_followup_alert(followups)
+            if alert:
+                send_message(alert)
+    except Exception as e:
+        log.error("Invoice check error: %s", e)
 
     try:
         alerts = check_price_alerts()
