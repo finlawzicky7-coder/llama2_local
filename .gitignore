@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+logs/
+*.pid
+opportunities.json
+market_data.json
+email_state.json
+github_state.json
+opportunity_scores.json
+tasks.json
+.telegram_offset
+.scheduler_state.json
+invoices.json
