@@ -1,0 +1,49 @@
+plan_campaign:
+  description: >
+    Create a campaign plan for targeting {target_industries} industries
+    in {target_markets} markets. Define:
+    1. Target prospect count and filtering criteria
+    2. Scoring thresholds for outreach tiers
+    3. Outreach sequence and timing
+    4. Success metrics and KPIs
+    5. Compliance checkpoints
+  expected_output: >
+    A structured campaign plan as a JSON object with: campaign_name,
+    target_criteria, scoring_thresholds, outreach_sequence, kpis, checkpoints.
+  agent: campaign_manager
+
+review_campaign_outputs:
+  description: >
+    Review all campaign outputs for quality and compliance:
+    1. Verify prospect profiles have complete, accurate data
+    2. Validate lead scores are reasonable and consistently applied
+    3. Check all email drafts for CAN-SPAM compliance
+    4. Check all call scripts for TCPA compliance
+    5. Verify property matches are logical
+    6. Flag any issues for correction
+
+    Campaign outputs: {campaign_outputs}
+  expected_output: >
+    A QA report as a JSON object: overall_status (approved/needs_revision),
+    issues (array of {stage, issue, severity, recommendation}),
+    approved_for_outreach (bool), human_review_required (bool).
+  agent: quality_reviewer
+
+execute_campaign:
+  description: >
+    Execute the full campaign workflow:
+    1. Run prospecting crew to discover and profile prospects
+    2. Run scoring crew to score and tier all prospects
+    3. Run matching crew to match properties and create materials
+    4. Run outreach crew to draft emails and call scripts
+    5. Present results for human approval before sending
+    6. Log all results to the database
+
+    Campaign plan: {campaign_plan}
+    Approval status: REQUIRES HUMAN APPROVAL before sending any communications.
+  expected_output: >
+    A campaign summary as a JSON object: campaign_id, status,
+    prospects_found, leads_scored, hot_leads, properties_matched,
+    emails_drafted, calls_scripted, ready_for_approval (bool),
+    next_steps (array).
+  agent: campaign_manager

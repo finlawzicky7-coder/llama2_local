@@ -1,0 +1,25 @@
+analyze_market_conditions:
+  description: >
+    Research current market conditions for {target_markets}: vacancy rates,
+    average asking rents, absorption trends, and competitive supply pipeline.
+    Summarize key factors that would make a prospect more or less likely
+    to sign a lease in the next 6-18 months.
+  expected_output: >
+    A JSON object keyed by market (city/state) with: vacancy_rate_pct,
+    avg_asking_rent_psf, ytd_absorption_sqft, new_supply_sqft,
+    market_heat (hot/warm/cool), and a brief narrative.
+  agent: market_analyst
+
+score_leads:
+  description: >
+    Score each prospect from the prospect profiles using this weighted model:
+    - Lease expiry urgency (0-6 months = 30pts, 6-12 = 20pts, 12-18 = 10pts)
+    - Growth signals strength (high=25pts, medium=15pts, low=5pts)
+    - Recent funding (>$50M=15pts, $10-50M=10pts, <$10M=5pts, none=0)
+    - Market conditions (hot=15pts, warm=10pts, cool=5pts)
+    - Company size fit with available inventory (good=15pts, partial=10pts, poor=5pts)
+    Assign each prospect a score 1-100 and tier: hot (>75), warm (50-75), cold (<50).
+  expected_output: >
+    A JSON array of objects: company_name, lead_score (int 1-100), lead_tier
+    (hot/warm/cold), score_breakdown (object with factor scores), recommendation.
+  agent: lead_scorer

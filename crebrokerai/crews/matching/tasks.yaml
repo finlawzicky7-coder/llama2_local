@@ -1,0 +1,36 @@
+match_properties:
+  description: >
+    For each scored prospect, find the top 3 best-matching properties from
+    available inventory. Consider:
+    - Size: prospect's current sqft + 20-50% growth buffer
+    - Budget: estimate based on industry and funding
+    - Location: same metro or stated preference
+    - Type: office vs. industrial vs. lab based on industry
+    - Amenities: industry-specific needs (lab for biotech, high ceilings for creative, etc.)
+
+    Prospect profiles: {prospect_data}
+    Available properties: {property_data}
+  expected_output: >
+    A JSON array of match objects: prospect_id, company_name, matches (array
+    of {property_id, building_name, match_score_pct, match_reasons (array),
+    potential_deal_value}).
+  agent: property_matcher
+
+create_marketing_materials:
+  description: >
+    For each top property match (match_score > 80%), create a custom
+    one-pager in markdown format that includes:
+    1. Building hero description tailored to the prospect's industry
+    2. Key specs (sqft, rent, year built)
+    3. Top 5 amenities most relevant to the prospect
+    4. Neighborhood highlights (transit, dining, talent pool)
+    5. Financial summary (estimated annual cost, comparison to market avg)
+    6. Call-to-action (schedule a tour)
+
+    Match results: {match_results}
+    Property details: {property_data}
+    Prospect details: {prospect_data}
+  expected_output: >
+    A JSON array of marketing objects: prospect_id, property_id,
+    one_pager_markdown, subject_line, key_selling_points (array).
+  agent: marketing_creator

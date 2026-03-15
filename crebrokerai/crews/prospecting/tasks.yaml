@@ -1,0 +1,33 @@
+scan_lease_expirations:
+  description: >
+    Search for companies in {target_markets} within the {target_industries}
+    industries that have commercial leases expiring in the next 6-18 months.
+    Use CRE databases, public records, and news sources. Return a structured
+    list with: company name, current address, estimated lease expiry date,
+    and approximate square footage.
+  expected_output: >
+    A JSON array of objects with keys: company_name, industry, city, state,
+    estimated_lease_sqft, lease_expiry_date, data_source.
+  agent: lease_scanner
+
+analyze_growth_signals:
+  description: >
+    For each company identified by the lease scanner, research growth signals:
+    recent funding rounds, hiring velocity (job postings in last 90 days),
+    acquisitions, product launches, and executive statements about expansion.
+    Rank each signal by strength (high / medium / low).
+  expected_output: >
+    A JSON array of objects with keys: company_name, signals (array of
+    {type, description, strength}), overall_expansion_likelihood (high/medium/low).
+  agent: growth_signal_analyst
+
+build_prospect_profiles:
+  description: >
+    For each high-potential prospect from the growth-signal analysis, build
+    a comprehensive profile: full company info, estimated space needs,
+    budget range, timeline, and at least one decision-maker contact with
+    name, title, email, and phone.
+  expected_output: >
+    A JSON array of complete prospect profiles ready for CRM import, with
+    all fields from the Prospect database model populated.
+  agent: prospect_profiler

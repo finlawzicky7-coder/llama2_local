@@ -1,0 +1,48 @@
+draft_outreach_emails:
+  description: >
+    For each hot and warm prospect, write a personalized cold email that:
+    1. References their specific situation (lease expiry date, growth signal)
+    2. Pitches the best-matching property from available inventory
+    3. Includes a clear CTA (schedule a tour, reply for more info)
+    4. Follows CAN-SPAM compliance (includes unsubscribe, physical address)
+    5. Is under 200 words and has a compelling subject line
+
+    Prospect data: {prospect_data}
+    Available properties: {property_data}
+  expected_output: >
+    A JSON array of email objects: prospect_id, to_email, subject, body,
+    matched_property_name, compliance_check (passed/failed).
+  agent: email_copywriter
+
+prepare_call_scripts:
+  description: >
+    For each hot prospect, prepare a natural conversation script for a
+    qualification call. The script should:
+    1. Open with TCPA-compliant identification
+    2. Reference why we're calling (their expansion/lease situation)
+    3. Include 3-5 qualifying questions
+    4. Have objection-handling responses for common pushbacks
+    5. Close with a tour booking attempt
+
+    Prospect data: {prospect_data}
+  expected_output: >
+    A JSON array of call script objects: prospect_id, phone, opening,
+    qualifying_questions (array), objection_handlers (object),
+    closing_script, tcpa_compliant (bool).
+  agent: call_qualifier
+
+coordinate_outreach:
+  description: >
+    Create a sequenced outreach plan for all prospects:
+    - Day 1: Send initial email to all hot + warm leads
+    - Day 3: Follow-up call to hot leads who haven't replied
+    - Day 5: Second email to warm leads who haven't opened
+    - Day 7: Final follow-up email to non-responders
+    Track all outreach in the outreach log.
+
+    Email drafts: {email_drafts}
+    Call scripts: {call_scripts}
+  expected_output: >
+    A JSON outreach plan with: sequence (array of steps with day, channel,
+    prospect_ids), total_emails, total_calls, compliance_status.
+  agent: outreach_coordinator
