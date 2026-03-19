@@ -1,0 +1,4 @@
+*.pyc
+__pycache__/
+.env
+cold_email_system/data/campaign_log.json

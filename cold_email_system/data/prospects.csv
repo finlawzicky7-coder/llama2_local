@@ -1,0 +1,5 @@
+email,first_name,company,industry,pain_point,title,website,notes
+john@example.com,John,Acme Corp,Manufacturing,streamline quality control,CTO,https://acme.example.com,Met at trade show
+sarah@example.com,Sarah,BrightPath Health,Healthcare,automate patient intake,VP Operations,https://brightpath.example.com,Series B startup
+mike@example.com,Mike,TrueNorth Logistics,Logistics,optimize route planning,Director of Ops,https://truenorth.example.com,500+ fleet vehicles
+lisa@example.com,Lisa,Pinnacle Financial,Finance,automate compliance reporting,Head of Engineering,https://pinnacle.example.com,Regional bank
