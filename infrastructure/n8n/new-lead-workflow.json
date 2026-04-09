@@ -1,0 +1,134 @@
+{
+  "name": "Multi-Funnel: New Lead",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-lead",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook: New Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 320],
+      "webhookId": "new-lead"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Expected input: lead row from Supabase (id, name, email, phone, funnel_source, lead_score, city, budget_or_revenue, service_interest)\nconst lead = $json.body || $json;\n\n// Branching flags based on score + funnel\nconst isHot  = (lead.lead_score || 0) >= 70;\nconst isWarm = (lead.lead_score || 0) >= 40 && (lead.lead_score || 0) < 70;\n\nreturn [{\n  json: {\n    ...lead,\n    is_hot:  isHot,\n    is_warm: isWarm,\n    subject_line: lead.funnel_source === 'mtr'\n      ? `Furnished units near ${lead.city || 'your hospital'} — availability inside`\n      : `Your turnover cleaning quote for ${lead.city || 'Sacramento'}`,\n    greeting: `Hi ${(lead.name || '').split(' ')[0] || 'there'},`\n  }\n}];"
+      },
+      "name": "Shape + Branch",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"funnel_source\"]}}",
+              "operation": "equal",
+              "value2": "mtr"
+            }
+          ]
+        }
+      },
+      "name": "Is MTR?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [720, 320]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{$json[\"email\"]}}",
+        "subject": "={{$json[\"subject_line\"]}}",
+        "message": "={{$json[\"greeting\"]}}\n\nThanks for reaching out about furnished housing near {{$json[\"city\"]}}. Based on your stipend of ${{$json[\"budget_or_revenue\"]}}, here are three units we have open that match:\n\n• Midtown 1BR — $2,850/mo — 6 min to UC Davis Medical\n• East Sac 1BR — $2,950/mo — 9 min to Sutter\n• Rocklin 2BR — $3,250/mo — 7 min to Kaiser Roseville\n\nReply to this email with your start date and I'll hold one for you.\n\n— Capitol Stays MTR\n(916) 555-0137",
+        "options": {}
+      },
+      "name": "Gmail: MTR Intro",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [960, 220],
+      "credentials": { "gmailOAuth2": { "id": "REPLACE", "name": "Gmail MTR" } }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{$json[\"email\"]}}",
+        "subject": "={{$json[\"subject_line\"]}}",
+        "message": "={{$json[\"greeting\"]}}\n\nThanks for the quote request. Based on the info you gave us, here's our flat-rate pricing for {{$json[\"city\"]}}:\n\n• Studio turnover: $65\n• 1BR turnover:   $85\n• 2BR turnover:   $115\n\nEvery clean includes linen swap, restock of consumables, and a photo report.\n\nReply with the unit address and checkout calendar and we'll get you on the schedule this week.\n\n— Turnover916\n(916) 555-0188",
+        "options": {}
+      },
+      "name": "Gmail: Cleaning Intro",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [960, 420],
+      "credentials": { "gmailOAuth2": { "id": "REPLACE", "name": "Gmail Cleaning" } }
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [ { "value1": "={{$json[\"is_hot\"]}}", "value2": true } ] }
+      },
+      "name": "Is Hot Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1220, 320]
+    },
+    {
+      "parameters": {
+        "channel": "#leads-hot",
+        "text": "HOT {{$json[\"funnel_source\"]}} lead ({{$json[\"lead_score\"]}}): {{$json[\"name\"]}} — {{$json[\"email\"]}} — {{$json[\"phone\"]}} — {{$json[\"city\"]}} — ${{$json[\"budget_or_revenue\"]}}\nCall within 5 minutes."
+      },
+      "name": "Slack: Hot Lead Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1460, 220],
+      "credentials": { "slackApi": { "id": "REPLACE", "name": "Slack Bot" } }
+    },
+    {
+      "parameters": {
+        "url": "={{$env[\"SUPABASE_URL\"]}}/rest/v1/funnel_events",
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"lead_id\": \"{{$json[\"id\"]}}\",\n  \"funnel_source\": \"{{$json[\"funnel_source\"]}}\",\n  \"event_type\": \"intro_email_sent\"\n}",
+        "options": {
+          "headers": {
+            "apikey": "={{$env[\"SUPABASE_SERVICE_KEY\"]}}",
+            "Authorization": "=Bearer {{$env[\"SUPABASE_SERVICE_KEY\"]}}",
+            "Content-Type": "application/json"
+          }
+        }
+      },
+      "name": "Supabase: Log Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1460, 420]
+    }
+  ],
+  "connections": {
+    "Webhook: New Lead":    { "main": [[{ "node": "Shape + Branch",     "type": "main", "index": 0 }]] },
+    "Shape + Branch":       { "main": [[{ "node": "Is MTR?",            "type": "main", "index": 0 }]] },
+    "Is MTR?": {
+      "main": [
+        [{ "node": "Gmail: MTR Intro",      "type": "main", "index": 0 }],
+        [{ "node": "Gmail: Cleaning Intro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Gmail: MTR Intro":      { "main": [[{ "node": "Is Hot Lead?",       "type": "main", "index": 0 }]] },
+    "Gmail: Cleaning Intro": { "main": [[{ "node": "Is Hot Lead?",       "type": "main", "index": 0 }]] },
+    "Is Hot Lead?": {
+      "main": [
+        [{ "node": "Slack: Hot Lead Alert", "type": "main", "index": 0 }],
+        [{ "node": "Supabase: Log Event",   "type": "main", "index": 0 }]
+      ]
+    },
+    "Slack: Hot Lead Alert": { "main": [[{ "node": "Supabase: Log Event", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1"
+}

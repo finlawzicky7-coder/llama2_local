@@ -1,0 +1,80 @@
+name: Deploy funnels to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          # Copy shared JS modules at a stable path
+          mkdir -p _site/shared
+          cp shared/*.js _site/shared/
+          # Copy each funnel into its own subdirectory
+          cp -r funnels/mtr-travel-nurses _site/mtr-travel-nurses
+          cp -r funnels/cleaning-turnover _site/cleaning-turnover
+          # Landing index
+          cat > _site/index.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Capitol Stays — Sacramento / Rocklin Services</title>
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <style>body{font-family:system-ui;max-width:640px;margin:80px auto;padding:24px;color:#0c1a2b}h1{margin-bottom:8px}ul{list-style:none;padding:0}li{margin:12px 0}a{color:#0b6e7f;text-decoration:none;font-weight:600}</style>
+          <h1>Capitol Stays</h1>
+          <p>Sacramento &amp; Rocklin local services.</p>
+          <ul>
+            <li><a href="./mtr-travel-nurses/">Furnished housing for travel nurses →</a></li>
+            <li><a href="./cleaning-turnover/">Airbnb turnover cleaning →</a></li>
+          </ul>
+          HTML
+
+      - name: Inject runtime config
+        env:
+          SUPABASE_URL:  ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          cfg = f"""<script>window.__SUPABASE_URL__={os.environ.get('SUPABASE_URL','')!r};window.__SUPABASE_ANON__={os.environ.get('SUPABASE_ANON','')!r};</script>"""
+          for p in pathlib.Path('_site').rglob('index.html'):
+              html = p.read_text()
+              if '__SUPABASE_URL__' in html and '<!-- injected -->' not in html:
+                  html = html.replace('</head>', f'<!-- injected -->{cfg}</head>')
+                  p.write_text(html)
+          PY
+
+      - name: Rewrite shared module paths for GitHub Pages
+        run: |
+          # Rewrite ../../shared/* imports to /<repo>/shared/* so deep paths work on Pages
+          find _site -name '*.js' -exec sed -i 's|\.\./\.\./shared/|../shared/|g' {} +
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

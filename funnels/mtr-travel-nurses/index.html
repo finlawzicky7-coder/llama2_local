@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Furnished Housing for Travel Nurses | Sacramento & Rocklin</title>
+  <meta name="description" content="Fully furnished 30/60/90-day rentals for travel nurses near UC Davis Medical, Sutter, Kaiser, and Mercy. Walk-in ready. Stipend-friendly." />
+  <link rel="canonical" href="https://example.com/mtr-travel-nurses/" />
+  <link rel="stylesheet" href="./styles.css" />
+  <meta property="og:title" content="Furnished Travel Nurse Housing — Sacramento / Rocklin" />
+  <meta property="og:description" content="Walk-in ready monthly rentals near every major Sacramento-area hospital. Stipend-friendly." />
+  <meta property="og:type" content="website" />
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">Capitol Stays <span>MTR</span></div>
+    <a href="#apply" class="btn btn-primary">Reserve a Stay</a>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <h1>Furnished Monthly Rentals for Travel Nurses in Sacramento &amp; Rocklin</h1>
+      <p class="lede">Walk-in ready 1 &amp; 2 bedroom units near <strong>UC Davis Medical, Sutter, Kaiser, Mercy, and Shriners</strong>. Stipend-friendly monthly rates. 30/60/90-day stays.</p>
+      <ul class="pills">
+        <li>Utilities + Wi-Fi included</li>
+        <li>Fully furnished</li>
+        <li>Pet-friendly options</li>
+        <li>Monthly cleaning</li>
+      </ul>
+      <a href="#apply" class="btn btn-primary btn-lg">Check availability</a>
+    </div>
+  </section>
+
+  <section class="value">
+    <div class="card">
+      <h3>Near every major hospital</h3>
+      <p>Average 8-minute drive to UC Davis Medical, 12 minutes to Sutter, 10 to Kaiser Sacramento, 15 to Kaiser Roseville.</p>
+    </div>
+    <div class="card">
+      <h3>Stipend-friendly pricing</h3>
+      <p>Monthly rates between <strong>$2,650 – $3,450</strong> — designed to fit the housing portion of your contract stipend.</p>
+    </div>
+    <div class="card">
+      <h3>Zero friction move-in</h3>
+      <p>Linens, kitchen, Wi-Fi, work desk, laundry — all included. Key pickup in under 5 minutes after arrival.</p>
+    </div>
+  </section>
+
+  <section class="apply" id="apply">
+    <div class="form-wrap">
+      <h2>Tell us about your assignment</h2>
+      <p>We'll send matching units within 2 hours during business hours.</p>
+      <form id="lead-form" novalidate>
+        <label>Full name
+          <input name="name" required autocomplete="name" />
+        </label>
+        <label>Email
+          <input name="email" type="email" required autocomplete="email" />
+        </label>
+        <label>Phone
+          <input name="phone" type="tel" required autocomplete="tel" />
+        </label>
+        <label>Hospital / assignment city
+          <input name="city" placeholder="e.g. UC Davis Medical, Sacramento" />
+        </label>
+        <label>Housing stipend (monthly, USD)
+          <input name="budget_or_revenue" type="number" min="0" step="50" placeholder="e.g. 3200" />
+        </label>
+        <label>Assignment details
+          <textarea name="service_interest" rows="3" placeholder="Start date, length (e.g. 13 weeks), specialty, pets, parking needs..."></textarea>
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg">Request availability</button>
+        <p class="fine-print">By submitting you agree to be contacted about matching units. No spam.</p>
+      </form>
+      <div id="form-success" class="success" hidden>
+        <h3>Thanks — we received your request.</h3>
+        <p>Check your inbox in the next few minutes for an availability packet. If it's urgent, text us at <strong>(916) 555-0137</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© Capitol Stays MTR · Sacramento / Rocklin, CA · <a href="mailto:hello@example.com">hello@example.com</a></p>
+  </footer>
+
+  <script>
+    // Runtime config — populated by the deploy workflow from repo secrets.
+    window.__SUPABASE_URL__  = window.__SUPABASE_URL__  || '';
+    window.__SUPABASE_ANON__ = window.__SUPABASE_ANON__ || '';
+    window.__STRIPE_LINK__   = window.__STRIPE_LINK__   || '';
+  </script>
+  <script type="module" src="./script.js"></script>
+</body>
+</html>

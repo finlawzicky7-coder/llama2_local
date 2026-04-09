@@ -1,0 +1,90 @@
+{
+  "name": "Multi-Funnel: 5-Day Follow-up Sequence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "value": 1 }] }
+      },
+      "name": "Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env[\"SUPABASE_URL\"]}}/rest/v1/leads?status=eq.new&order=created_at.asc",
+        "options": {
+          "headers": {
+            "apikey": "={{$env[\"SUPABASE_SERVICE_KEY\"]}}",
+            "Authorization": "=Bearer {{$env[\"SUPABASE_SERVICE_KEY\"]}}"
+          }
+        }
+      },
+      "name": "Fetch Open Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Decide which follow-up touch is due for each lead.\n// Touches: day 1 (24h), day 3 (72h), day 5 (120h).\nconst now = Date.now();\nconst out = [];\nfor (const item of items) {\n  const l = item.json;\n  const ageH = (now - new Date(l.created_at).getTime()) / 36e5;\n  let touch = null;\n  if (ageH >= 24 && ageH < 25)    touch = 'day1';\n  else if (ageH >= 72 && ageH < 73)  touch = 'day3';\n  else if (ageH >= 120 && ageH < 121) touch = 'day5';\n  if (touch) out.push({ json: { ...l, touch } });\n}\nreturn out;"
+      },
+      "name": "Pick Touch",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const templates = {\n  mtr: {\n    day1: {\n      subject: 'Still looking for furnished housing?',\n      body: 'Hey {{name}} — did last night\\'s availability packet come through? I can also text photos of any unit that caught your eye. Just reply with the hospital + start date.'\n    },\n    day3: {\n      subject: 'A few units just freed up near your hospital',\n      body: 'Quick update — two of our Sacramento 1BRs came back on the calendar for the window you mentioned. Want me to hold one for 24 hours while you confirm your contract?'\n    },\n    day5: {\n      subject: 'Last check before I release your hold',\n      body: 'Just touching base once more — if timing shifted on your assignment, I can pull a new list for the new dates. Otherwise I\\'ll close out your inquiry so we\\'re not cluttering your inbox.'\n    }\n  },\n  cleaning: {\n    day1: {\n      subject: 'Your cleaning quote — anything to adjust?',\n      body: 'Hey {{name}} — want me to tweak the scope? Some hosts add laundry pickup or mid-stay resets, happy to bundle those in.'\n    },\n    day3: {\n      subject: 'Opening this week for your unit',\n      body: 'I have two same-day slots open this week in {{city}}. Want to book one as a trial run? If we don\\'t meet your standard, the first clean is on us.'\n    },\n    day5: {\n      subject: 'Closing out your quote',\n      body: 'Hey {{name}} — I\\'ll close out your quote at the end of the week unless you\\'d like to revisit it. Reply STAY and I\\'ll hold it another 30 days.'\n    }\n  }\n};\n\nconst lead = $json;\nconst t = templates[lead.funnel_source]?.[lead.touch];\nif (!t) return [];\nreturn [{ json: {\n  ...lead,\n  subject: t.subject,\n  body: t.body.replace(/{{name}}/g, (lead.name||'').split(' ')[0] || 'there').replace(/{{city}}/g, lead.city||'Sacramento')\n}}];"
+      },
+      "name": "Render Template",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{$json[\"email\"]}}",
+        "subject": "={{$json[\"subject\"]}}",
+        "message": "={{$json[\"body\"]}}",
+        "options": {}
+      },
+      "name": "Gmail: Follow-up",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1200, 300],
+      "credentials": { "gmailOAuth2": { "id": "REPLACE", "name": "Gmail Shared" } }
+    },
+    {
+      "parameters": {
+        "url": "={{$env[\"SUPABASE_URL\"]}}/rest/v1/funnel_events",
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"lead_id\": \"{{$json[\"id\"]}}\",\n  \"funnel_source\": \"{{$json[\"funnel_source\"]}}\",\n  \"event_type\": \"followup_{{$json[\"touch\"]}}\"\n}",
+        "options": {
+          "headers": {
+            "apikey": "={{$env[\"SUPABASE_SERVICE_KEY\"]}}",
+            "Authorization": "=Bearer {{$env[\"SUPABASE_SERVICE_KEY\"]}}",
+            "Content-Type": "application/json"
+          }
+        }
+      },
+      "name": "Log Follow-up Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1440, 300]
+    }
+  ],
+  "connections": {
+    "Every Hour":        { "main": [[{ "node": "Fetch Open Leads", "type": "main", "index": 0 }]] },
+    "Fetch Open Leads":  { "main": [[{ "node": "Pick Touch",       "type": "main", "index": 0 }]] },
+    "Pick Touch":        { "main": [[{ "node": "Render Template",  "type": "main", "index": 0 }]] },
+    "Render Template":   { "main": [[{ "node": "Gmail: Follow-up", "type": "main", "index": 0 }]] },
+    "Gmail: Follow-up":  { "main": [[{ "node": "Log Follow-up Event", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1"
+}
