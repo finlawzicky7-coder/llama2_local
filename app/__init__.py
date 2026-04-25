@@ -1,0 +1,1 @@
+"""Ringback FastAPI application."""

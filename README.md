@@ -26,20 +26,10 @@ and fill in before wiring real Twilio / Stripe / Supabase.
 ## Repo layout
 
 ```
-docs/
-  company-factory.md     ← Master plan + selected first company.
-  market-research.md     ← Opportunity scan and competitor teardown.
-  validation-plan.md     ← 7-day demand test with exact scripts.
-  product-spec.md        ← MVP scope, architecture, data model.
-  growth-plan.md         ← 30-day acquisition system.
-  sales-playbook.md      ← Qualification, demo, objection bank.
-  operations-sop.md      ← Onboarding, support, incident response.
-  qa-report.md           ← Launch readiness checklist (currently un-passed).
-  decision-log.md        ← Append-only CEO-Orchestrator decisions.
-  agent-memory.md        ← Agent roster, prompts, KPI tree, lessons.
+docs/                    ← Strategy + decisions + playbooks (10 files).
 supabase/
   schema.sql             ← Multi-tenant Postgres schema.
-  rls-policies.sql       ← Row-level security policies (deny-by-default).
+  rls-policies.sql       ← Deny-by-default row-level security.
 src/ringback/            ← Pure-Python primitives, unit-tested.
   twilio_signing.py      ← HMAC-SHA1 Twilio webhook verification.
   redaction.py           ← PII redaction for logs.
@@ -47,7 +37,32 @@ src/ringback/            ← Pure-Python primitives, unit-tested.
   booking.py             ← Idempotent booking-key derivation.
   prompts.py             ← Voice/SMS agent prompt templates.
   agent_state.py         ← Pure state machine for the agent runtime.
-tests/                   ← 39 unit tests covering the modules above.
+app/                     ← FastAPI application (live runtime).
+  main.py                ← App factory.
+  config.py              ← Settings via pydantic-settings.
+  voice.py               ← /voice/incoming, /voice/turn, /sms/incoming.
+  billing_routes.py      ← /webhooks/stripe.
+  dashboard.py           ← /, /healthz, /dashboard/{tenant_id}.
+  twiml.py               ← TwiML response helpers.
+  twilio_deps.py         ← Webhook signature dependency.
+  call_state.py          ← Per-call session store.
+  llm.py                 ← Provider-agnostic LLM adapter (Fake + HTTP).
+  tools.py               ← Tools the agent can call (lookup, book, sms,
+                            route_emergency, end_call).
+  runtime.py             ← Drives the state machine through tool hops.
+  repos.py               ← Repo interfaces + in-memory implementations.
+  db.py                  ← asyncpg-backed repos (production).
+  billing.py             ← Stripe port + Fake/HTTP impls.
+  digest.py              ← Daily digest builder + email port.
+  integrations/
+    google_calendar.py   ← Google Calendar wrapper.
+    resend_email.py      ← Resend email wrapper.
+  deps.py                ← RuntimeBundle DI for routes + tests.
+  types.py               ← Domain dataclasses.
+tests/                   ← 63 unit + route tests (all offline).
+.github/workflows/ci.yml ← pytest on every push.
+Dockerfile               ← Production image.
+Makefile                 ← `make install` / `make test` / `make run` / `make db-apply`.
 .env.example             ← Every secret the runtime expects.
 ```
 
@@ -116,22 +131,43 @@ status. As of this commit: **28/100, NOT launch-ready.**
 6. Never build illegal, deceptive, spammy, or policy-violating systems.
 7. Inbound-only product mandate (Ringback specific — see DL-002).
 
-## What's in this commit
+## What's in this branch
 
 - All 10 strategic docs filled out for Ringback.
 - Multi-tenant Postgres schema + deny-by-default RLS policies.
 - Pure-Python primitives (signing, redaction, emergency detection,
-  booking idempotency, prompts, agent state machine) with **39 unit
-  tests passing**.
-- Agent task board, 7-day roadmap, decision log seeded.
+  booking idempotency, prompts, agent state machine).
+- **Live FastAPI app** with Twilio voice + SMS webhooks, agent runtime,
+  Stripe billing webhook, server-rendered operator dashboard, and a
+  daily-digest builder.
+- Provider-agnostic LLM adapter (`app/llm.py`) — `FakeLLMClient` for
+  tests; `HTTPLLMClient` configured via `LLM_BASE_URL` + `LLM_API_KEY` +
+  `LLM_MODEL` (any OpenAI-compatible endpoint).
+- Asyncpg-backed Postgres repos (`app/db.py`) + in-memory repos for
+  tests (`app/repos.py`).
+- Google Calendar wrapper, Resend email wrapper, Stripe SDK wrapper —
+  each behind a port with a `Fake*` implementation for offline tests.
+- **63/63 tests passing** offline (unit + route).
+- GitHub Actions workflow runs `pytest -q` on every push.
+- Dockerfile + Makefile.
 
-## What's NOT in this commit (and why)
+DL-008 (founder override) authorized building live integrations before
+the validation gate (DL-005). The integrations are in place; running
+the validation outbound and onboarding the first paid pilot are the
+remaining steps to actually start the company.
 
-- No live FastAPI server, Twilio integration, Stripe wiring, Google
-  Calendar OAuth, or Next.js dashboard. Building those before validation
-  passes (DL-005) violates the operating rules. Per the roadmap, those
-  ship D3–D5 once validation gates are met.
-- No production deployment, no real tenant data, no customer.
+## What still needs production wiring (and why)
+
+- Live Postgres + Supabase project: apply `supabase/schema.sql` and
+  `supabase/rls-policies.sql` (or `make db-apply`), then verify RLS
+  isolation against a real auth user.
+- Live Twilio number + carrier forwarding from a real contractor's line.
+- Real LLM provider creds (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
+- Real Stripe customer + booking-fee meter id.
+- Per-tenant Google OAuth token storage + refresh.
+- Real cold-outbound run (the validation step) per `validation-plan.md`.
+- One real cell phone → real Twilio number → AI agent → booking → GCal
+  event → Stripe usage record. The QA report tracks this as item 20.
 
 ## Final Cycle-1 Report
 

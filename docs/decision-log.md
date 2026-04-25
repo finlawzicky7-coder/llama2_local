@@ -76,3 +76,18 @@ something is complete unless it is tested."
 **Alternatives:** Push a half-built end-to-end MVP and call it done.
 **Reason:** Honesty > theatre. The next cycle of work (D3–D5 in the
 roadmap) is what produces the deployable artifact.
+
+## 2026-04-25 — DL-008 — User override: build live integrations now (skip validation gate)
+
+**Decider:** Founder (user override)
+**Decision:** Proceed with D3–D5 live build (FastAPI + Twilio webhooks,
+LLM adapter, tools layer, Stripe, Google Calendar, digest email, CI)
+without waiting for the validation gate from DL-005 to pass.
+**Alternatives:** Hold the line on DL-005 until 8/150 booked discovery
+calls is achieved.
+**Reason:** Founder explicitly instructed "now build live." Founder
+authority overrides the orchestrator's gate. Risk noted: if validation
+later fails, the live code is sunk cost. Mitigation: every external
+integration sits behind an interface with a fake/in-memory implementation,
+so the cost of switching verticals or killing the idea is bounded to the
+voice/SMS scripts and the Twilio number cost.
