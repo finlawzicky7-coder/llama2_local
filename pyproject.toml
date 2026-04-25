@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ringback"
+version = "0.0.1"
+description = "Ringback — inbound missed-call recovery agent for U.S. home-services contractors"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ringback*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
