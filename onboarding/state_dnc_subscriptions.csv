@@ -1,0 +1,9 @@
+state,registry,renewal_required,subscription_url,notes
+FL,Florida Do Not Call List,annual,https://www.fdacs.gov/Business-Services/Do-Not-Call-Florida,Stricter than federal; required for telemarketing in FL
+TX,Texas No Call List,annual,https://www.texasnocall.com/,Required if you market in TX
+IN,Indiana Do Not Call List,quarterly,https://www.in.gov/attorneygeneral/consumer-protection-division/do-not-call/,Quarterly refresh
+MO,Missouri No-Call List,annual,https://ago.mo.gov/divisions/consumer/no-call,
+PA,Pennsylvania Do-Not-Call List,annual,https://www.attorneygeneral.gov/protect-yourself/do-not-call-list/,
+LA,Louisiana Do Not Call,annual,https://www.lapsc.louisiana.gov/donotcall.aspx,
+TN,Tennessee Do Not Call,annual,https://www.tn.gov/tpuc/donotcall.html,
+WI,Wisconsin No Call List,annual,https://datcp.wi.gov/Pages/Programs_Services/NoCall.aspx,

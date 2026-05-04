@@ -1,0 +1,129 @@
+{
+  "name": "03 - AI Qualification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "medicare-ai-qualify",
+        "responseMode": "responseNode"
+      },
+      "id": "wh",
+      "name": "Qualify Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 320],
+      "webhookId": "medicare-ai-qualify"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads?id=eq.{{$json.body.lead_id}}&select=*",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+          ]
+        }
+      },
+      "id": "fetch",
+      "name": "Fetch Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [420, 320]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "=Bearer {{$env.OPENAI_API_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4.1-mini\",\n  \"response_format\": {\"type\": \"json_object\"},\n  \"temperature\": 0,\n  \"messages\": [\n    {\"role\":\"system\",\"content\": {{JSON.stringify($env.AI_QUAL_SYSTEM_PROMPT)}}},\n    {\"role\":\"user\",\"content\": {{JSON.stringify('Lead form data:\\n' + JSON.stringify($json[0]))}}}\n  ]\n}",
+        "options": {"timeout": 20000}
+      },
+      "id": "llm",
+      "name": "Qualify with LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [640, 320]
+    },
+    {
+      "parameters": {
+        "functionCode": "const res = items[0].json;\nconst content = res.choices?.[0]?.message?.content || '{}';\nlet parsed;\ntry { parsed = JSON.parse(content); } catch(e) { parsed = {error: 'parse_failed', raw: content}; }\n// Compliance flag scan: reject if model named a specific plan or used prohibited claims.\nconst FORBIDDEN = [/best plan/i, /guaranteed savings/i, /free benefits?/i, /medicare\\.gov/i, /\\bcms\\b/i, /humana|aetna|uhc|wellcare|cigna|kaiser|anthem/i];\nconst flat = JSON.stringify(parsed);\nconst flags = parsed.compliance_flags || [];\nfor (const re of FORBIDDEN) {\n  if (re.test(flat)) flags.push({type:'forbidden_phrase', pattern: re.toString()});\n}\nparsed.compliance_flags = flags;\nreturn [{json: parsed}];"
+      },
+      "id": "parse",
+      "name": "Parse + Flag Scan",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [860, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/ai_qualification_sessions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{$('Fetch Lead').item.json[0].id}}\",\n  \"channel\": \"chat\",\n  \"model\": \"gpt-4.1-mini\",\n  \"prompt_version\": \"qual-v1\",\n  \"summary\": \"{{$json.summary}}\",\n  \"intent_score\": {{$json.intent_score || 0}},\n  \"qualified\": {{$json.qualified === true}},\n  \"compliance_flags\": {{JSON.stringify($json.compliance_flags || [])}},\n  \"recommended_next_step\": \"{{$json.next_step}}\"\n}"
+      },
+      "id": "save",
+      "name": "Save AI Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1080, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.N8N_BASE_URL}}/webhook/medicare-score-lead",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "x-internal-token", "value": "={{$env.N8N_INTERNAL_TOKEN}}"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"lead_id\":\"{{$('Fetch Lead').item.json[0].id}}\",\"intent_score\":{{$('Parse + Flag Scan').item.json.intent_score || 0}}}"
+      },
+      "id": "score",
+      "name": "Trigger Lead Scoring",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 320]
+    },
+    {
+      "parameters": {"respondWith":"json","responseBody":"={\"status\":\"qualified\",\"intent_score\":{{$('Parse + Flag Scan').item.json.intent_score || 0}}}"},
+      "id": "ok",
+      "name": "OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1520, 320]
+    }
+  ],
+  "connections": {
+    "Qualify Webhook": {"main":[[{"node":"Fetch Lead","type":"main","index":0}]]},
+    "Fetch Lead": {"main":[[{"node":"Qualify with LLM","type":"main","index":0}]]},
+    "Qualify with LLM": {"main":[[{"node":"Parse + Flag Scan","type":"main","index":0}]]},
+    "Parse + Flag Scan": {"main":[[{"node":"Save AI Session","type":"main","index":0}]]},
+    "Save AI Session": {"main":[[{"node":"Trigger Lead Scoring","type":"main","index":0}]]},
+    "Trigger Lead Scoring": {"main":[[{"node":"OK","type":"main","index":0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "tags": ["medicare","ai"]
+}

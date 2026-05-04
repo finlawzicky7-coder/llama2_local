@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Free Medicare Review — {{AGENCY_NAME}}</title>
+  <meta name="description" content="Speak with a licensed agent about your Medicare options. We are not Medicare or the federal government.">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Cloudflare Turnstile (or hCaptcha) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">
+    <strong>{{AGENCY_NAME}}</strong> · Independent Medicare Insurance Agency
+  </div>
+  <p class="not-affiliated"><strong>Not Medicare. Not affiliated with the federal government, CMS, or Medicare.gov.</strong></p>
+
+  <h1>Talk to a licensed agent about your Medicare options.</h1>
+  <p class="lede">No pressure. No "best plan" pitches. Just a clear, plain-English review of what's available where you live, with someone licensed in your state.</p>
+
+  <div class="tpmo-disclaimer" id="tpmo-disclaimer" data-version="tpmo-2026-04-01-v3">
+    <p><strong>Important disclosure:</strong> We do not offer every plan available in your area. Currently we represent <span data-merge="N_CARRIERS">{{N_CARRIERS}}</span> organizations which offer <span data-merge="N_PLANS">{{N_PLANS}}</span> products in your area. Please contact <a href="https://www.medicare.gov" rel="nofollow noopener">Medicare.gov</a>, 1-800-MEDICARE, or your local <a href="https://www.shiphelp.org" rel="nofollow noopener">SHIP</a> to get information on all of your options.</p>
+  </div>
+</header>
+
+<main>
+  <section class="education">
+    <h2>What you'll get on a 15-minute review call</h2>
+    <ul>
+      <li>A walkthrough of how Medicare Parts A, B, C, and D fit together — in plain language.</li>
+      <li>Questions a licensed agent will ask to understand your situation: doctors, prescriptions, ZIP, current coverage.</li>
+      <li>A clear next step. If we're not a fit, we'll tell you and point you to Medicare.gov or your local SHIP.</li>
+    </ul>
+    <p><em>We never recommend a specific plan on this page. Plan recommendations only happen after a Scope of Appointment is signed and your licensed agent has reviewed your situation.</em></p>
+  </section>
+
+  <section class="form-section">
+    <h2>Request a callback</h2>
+    <form id="lead-form" novalidate>
+      <label>First name<input name="first_name" required autocomplete="given-name"></label>
+      <label>Last name<input name="last_name" required autocomplete="family-name"></label>
+      <label>Phone (US)<input name="phone" type="tel" required autocomplete="tel" placeholder="(555) 555-1234"></label>
+      <label>Email<input name="email" type="email" required autocomplete="email"></label>
+      <label>ZIP code<input name="zip_code" required pattern="\d{5}" autocomplete="postal-code"></label>
+      <label>State
+        <select name="state" required autocomplete="address-level1">
+          <option value="">Select…</option>
+          <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+          <option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option>
+          <option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option>
+          <option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+          <option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option>
+          <option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option>
+          <option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option>
+          <option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+          <option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option>
+          <option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option>
+          <option>DC</option>
+        </select>
+      </label>
+
+      <fieldset>
+        <legend>Where are you with Medicare?</legend>
+        <label><input type="radio" name="medicare_status" value="on_medicare" required> I'm on Medicare now</label>
+        <label><input type="radio" name="medicare_status" value="turning_65"> I'm turning 65 soon</label>
+        <label><input type="radio" name="medicare_status" value="helping_family"> I'm helping a family member</label>
+        <label><input type="radio" name="medicare_status" value="disability"> I have Medicare due to disability</label>
+        <label><input type="radio" name="medicare_status" value="unsure"> Not sure — I need help</label>
+      </fieldset>
+
+      <label>Anything we should know? (optional)
+        <textarea name="desired_help" rows="3" maxlength="500"></textarea>
+      </label>
+
+      <!-- Birth month/year only if your sales process truly requires it. Default off. -->
+      <details>
+        <summary>Optional: birth month &amp; year (helps with timing — we never ask full DOB)</summary>
+        <label>Birth month<input name="birth_month" type="number" min="1" max="12"></label>
+        <label>Birth year<input name="birth_year" type="number" min="1900" max="2025"></label>
+      </details>
+
+      <fieldset class="consent-block">
+        <legend>Your consent</legend>
+
+        <label class="consent-line">
+          <input type="checkbox" name="consent_tcpa" required>
+          <span>By checking this box and clicking submit, I authorize <strong>{{AGENCY_NAME}}</strong> (the receiving party named below) and the licensed agent assigned to me to contact me at the phone number and email I provided, including by automatic telephone dialing system, prerecorded/artificial voice, SMS text message, and email, regarding Medicare insurance products. Message and data rates may apply. Reply STOP to opt out. Consent is not a condition of any purchase. <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+
+        <p class="consent-line"><strong>Receiving entities (your express consent applies only to those you check):</strong></p>
+        <label class="consent-line"><input type="checkbox" name="entity_self" data-entity="{{AGENCY_NAME}}" checked required> {{AGENCY_NAME}} (the agency you're contacting)</label>
+        <!-- If you share data with any partner TPMO, list each individually. Otherwise REMOVE the lines below. -->
+        <!-- <label class="consent-line"><input type="checkbox" name="entity_partner1" data-entity="Partner FMO Name"> Partner FMO Name</label> -->
+        <!-- <label class="consent-line"><input type="checkbox" name="entity_partner2" data-entity="Another Partner Name"> Another Partner Name</label> -->
+
+        <label class="consent-line">
+          <input type="checkbox" name="consent_recording" required>
+          <span>I understand calls may be recorded for quality and compliance.</span>
+        </label>
+
+        <label class="consent-line">
+          <input type="checkbox" name="consent_tpmo_seen" required>
+          <span>I have read the disclosure above stating that {{AGENCY_NAME}} does not offer every plan in my area.</span>
+        </label>
+      </fieldset>
+
+      <!-- Cloudflare Turnstile -->
+      <div class="cf-turnstile" data-sitekey="{{TURNSTILE_SITE_KEY}}" data-action="medicare-lead"></div>
+
+      <input type="hidden" name="source" value="google_search">
+      <input type="hidden" name="campaign_id" value="{{CAMPAIGN_ID}}">
+      <input type="hidden" name="landing_page_url">
+      <input type="hidden" name="referrer_url">
+      <input type="hidden" name="utm_source">
+      <input type="hidden" name="utm_medium">
+      <input type="hidden" name="utm_campaign">
+      <input type="hidden" name="utm_content">
+      <input type="hidden" name="utm_term">
+
+      <button type="submit">Request my callback</button>
+      <p class="fineprint">Submitting this form does not enroll you in any plan. A licensed agent will contact you to discuss options. Reply STOP to any text message at any time to opt out.</p>
+    </form>
+
+    <div id="thanks" hidden>
+      <h3>Thanks — we received your request.</h3>
+      <p>A licensed agent will call you shortly. If you'd like to opt out at any time, reply STOP to any text message or email <a href="mailto:unsubscribe@your-domain.com">unsubscribe@your-domain.com</a>.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>{{AGENCY_NAME}} · License #{{LICENSE_NUMBERS}} · {{ADDRESS}} · {{PHONE}}</p>
+  <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms</a> · <a href="/accessibility">Accessibility</a> · <a href="/optout">Do Not Sell or Share My Info</a></p>
+  <p class="footer-tpmo">We do not offer every plan available in your area. Currently we represent {{N_CARRIERS}} organizations which offer {{N_PLANS}} products in your area. Please contact Medicare.gov, 1-800-MEDICARE, or your local SHIP to get information on all of your options.</p>
+</footer>
+
+<script src="/consent-tracker.js" defer></script>
+</body>
+</html>

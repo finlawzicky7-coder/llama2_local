@@ -1,0 +1,83 @@
+{
+  "name": "09 - Opt-out Suppression Listener",
+  "nodes": [
+    {
+      "parameters":{"httpMethod":"POST","path":"medicare-optout","responseMode":"responseNode"},
+      "id":"wh","name":"Opt-out Webhook","type":"n8n-nodes-base.webhook","typeVersion":1,
+      "position":[200,320],"webhookId":"medicare-optout"
+    },
+    {
+      "parameters":{
+        "functionCode":"// Sources: Twilio inbound SMS, Postmark unsubscribe webhook, Cal/voice DTMF, manual.\n// Normalize to {phone, email, channel, raw, reason}.\nconst b = items[0].json.body || items[0].json;\nlet phone = b.From || b.phone || null;\nlet email = (b.Email || b.email || '').toLowerCase() || null;\nlet channel = b.channel || (b.From ? 'sms' : (email ? 'email' : 'manual'));\nconst raw = b.Body || b.raw || JSON.stringify(b);\nconst stop = /\\b(stop|stopall|unsubscribe|cancel|end|quit|remove|do ?not ?call)\\b/i.test(raw||'');\nif (channel === 'sms' && !stop && b.Body) {\n  // Not an opt-out — short circuit.\n  return [{json:{not_opt_out:true, body:b.Body, phone}}];\n}\nreturn [{json:{phone, email, channel, raw, reason: 'inbound_'+channel}}];"
+      },
+      "id":"norm","name":"Normalize","type":"n8n-nodes-base.function","typeVersion":1,
+      "position":[420,320]
+    },
+    {
+      "parameters":{"conditions":{"boolean":[{"value1":"={{$json.not_opt_out}}","value2":true}]}},
+      "id":"if-not","name":"Inbound Reply, Not Opt-out?","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[640,320]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/fn_propagate_opt_out",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"p_phone\":{{$json.phone === null ? null : '\"'+$json.phone+'\"'}},\n  \"p_email\":{{$json.email === null ? null : '\"'+$json.email+'\"'}},\n  \"p_channel\":\"{{$json.channel}}\",\n  \"p_reason\":\"{{$json.reason}}\",\n  \"p_raw\":{{JSON.stringify($json.raw)}}\n}"
+      },
+      "id":"propagate","name":"Propagate Opt-out","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[860,440]
+    },
+    {
+      "parameters":{
+        "url":"https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "method":"POST","authentication":"genericCredentialType","genericAuthType":"httpBasicAuth",
+        "contentType":"form-urlencoded","sendBody":true,
+        "bodyParameters":{"parameters":[
+          {"name":"To","value":"={{$('Normalize').item.json.phone}}"},
+          {"name":"From","value":"={{$env.TWILIO_SMS_FROM}}"},
+          {"name":"Body","value":"You have been unsubscribed and will no longer receive messages from us. Reply START to resubscribe."}
+        ]},
+        "credentials":{"httpBasicAuth":{"id":"twilio_basic","name":"Twilio Basic"}}
+      },
+      "id":"ack","name":"Send STOP Ack","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1080,440]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.N8N_BASE_URL}}/webhook/medicare-handle-inbound-sms",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"Content-Type","value":"application/json"},
+          {"name":"x-internal-token","value":"={{$env.N8N_INTERNAL_TOKEN}}"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"phone\":\"{{$json.phone}}\",\"body\":\"{{$json.body}}\"}"
+      },
+      "id":"reply","name":"Hand off Reply","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[860,200]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"handled\"}"},
+      "id":"ok","name":"OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1300,320]
+    }
+  ],
+  "connections":{
+    "Opt-out Webhook":{"main":[[{"node":"Normalize","type":"main","index":0}]]},
+    "Normalize":{"main":[[{"node":"Inbound Reply, Not Opt-out?","type":"main","index":0}]]},
+    "Inbound Reply, Not Opt-out?":{"main":[
+      [{"node":"Hand off Reply","type":"main","index":0}],
+      [{"node":"Propagate Opt-out","type":"main","index":0}]
+    ]},
+    "Propagate Opt-out":{"main":[[{"node":"Send STOP Ack","type":"main","index":0}]]},
+    "Send STOP Ack":{"main":[[{"node":"OK","type":"main","index":0}]]},
+    "Hand off Reply":{"main":[[{"node":"OK","type":"main","index":0}]]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","compliance","optout"]
+}

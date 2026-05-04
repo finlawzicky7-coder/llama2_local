@@ -1,0 +1,108 @@
+{
+  "name": "08 - Appointment Booking",
+  "nodes": [
+    {
+      "parameters":{"httpMethod":"POST","path":"medicare-book-appointment","responseMode":"responseNode"},
+      "id":"wh","name":"Booking Webhook","type":"n8n-nodes-base.webhook","typeVersion":1,
+      "position":[200,320],"webhookId":"medicare-book-appointment"
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/v_lead_reachable?id=eq.{{$json.body.lead_id}}&select=*",
+        "method":"GET","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+        ]}
+      },
+      "id":"fetch","name":"Fetch Lead","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,320]
+    },
+    {
+      "parameters":{"conditions":{"boolean":[{"value1":"={{$json[0].is_reachable}}","value2":true}]}},
+      "id":"if","name":"Reachable?","type":"n8n-nodes-base.if","typeVersion":1,"position":[640,320]
+    },
+    {
+      "parameters":{
+        "url":"https://api.cal.com/v2/bookings",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"Authorization","value":"=Bearer {{$env.CAL_COM_API_KEY}}"},
+          {"name":"Content-Type","value":"application/json"},
+          {"name":"cal-api-version","value":"2024-08-13"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"start\": \"{{$('Booking Webhook').item.json.body.start_iso}}\",\n  \"eventTypeId\": {{$env.CAL_EVENT_TYPE_ID}},\n  \"attendee\": {\n    \"name\": \"{{$json[0].first_name}} {{$json[0].last_name}}\",\n    \"email\": \"{{$json[0].email}}\",\n    \"timeZone\": \"{{$json[0].timezone || 'America/New_York'}}\",\n    \"phoneNumber\": \"{{$json[0].phone}}\"\n  },\n  \"metadata\": { \"lead_id\": \"{{$json[0].id}}\", \"agent_id\": \"{{$json[0].assigned_agent_id}}\" }\n}"
+      },
+      "id":"cal","name":"Cal.com Book","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[860,200]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/appointments",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"lead_id\":\"{{$('Fetch Lead').item.json[0].id}}\",\n  \"agent_id\":\"{{$('Fetch Lead').item.json[0].assigned_agent_id}}\",\n  \"appointment_time\":\"{{$('Booking Webhook').item.json.body.start_iso}}\",\n  \"timezone\":\"{{$('Fetch Lead').item.json[0].timezone}}\",\n  \"channel\":\"{{$('Booking Webhook').item.json.body.channel || 'phone'}}\",\n  \"cal_event_id\":\"{{$json.data.id || $json.id}}\",\n  \"status\":\"scheduled\"\n}"
+      },
+      "id":"save","name":"Save Appointment","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1080,200]
+    },
+    {
+      "parameters":{
+        "url":"https://api.postmarkapp.com/email/withTemplate",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"X-Postmark-Server-Token","value":"={{$env.POSTMARK_TOKEN}}"},
+          {"name":"Accept","value":"application/json"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"From\":\"{{$env.EMAIL_FROM}}\",\"To\":\"{{$('Fetch Lead').item.json[0].email}}\",\"TemplateAlias\":\"appt_confirmation_v1\",\"TemplateModel\":{\"first_name\":\"{{$('Fetch Lead').item.json[0].first_name}}\",\"appointment_time\":\"{{$('Booking Webhook').item.json.body.start_iso}}\",\"agent_name\":\"Your Licensed Agent\",\"soa_url\":\"https://{{$env.PUBLIC_HOST}}/soa/{{$('Fetch Lead').item.json[0].id}}\"},\"MessageStream\":\"medicare-transactional\"}"
+      },
+      "id":"confirm","name":"Send Confirmation + SOA Link","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1300,200]
+    },
+    {
+      "parameters":{
+        "url":"https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "method":"POST","authentication":"genericCredentialType","genericAuthType":"httpBasicAuth",
+        "contentType":"form-urlencoded","sendBody":true,
+        "bodyParameters":{"parameters":[
+          {"name":"To","value":"={{$('Fetch Lead').item.json[0].phone}}"},
+          {"name":"From","value":"={{$env.TWILIO_SMS_FROM}}"},
+          {"name":"Body","value":"=You're booked for a Medicare review on {{$('Booking Webhook').item.json.body.start_iso}}. Please complete the Scope of Appointment first: https://{{$env.PUBLIC_HOST}}/soa/{{$('Fetch Lead').item.json[0].id}} Reply STOP to opt out."}
+        ]},
+        "credentials":{"httpBasicAuth":{"id":"twilio_basic","name":"Twilio Basic"}}
+      },
+      "id":"sms-confirm","name":"SMS Confirmation","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1520,200]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"booked\",\"appointment_time\":\"{{$('Booking Webhook').item.json.body.start_iso}}\"}"},
+      "id":"ok","name":"OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1740,200]
+    },
+    {
+      "parameters":{"respondWith":"json","responseCode":403,"responseBody":"={\"status\":\"blocked\"}"},
+      "id":"blk","name":"Blocked","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[860,440]
+    }
+  ],
+  "connections":{
+    "Booking Webhook":{"main":[[{"node":"Fetch Lead","type":"main","index":0}]]},
+    "Fetch Lead":{"main":[[{"node":"Reachable?","type":"main","index":0}]]},
+    "Reachable?":{"main":[
+      [{"node":"Cal.com Book","type":"main","index":0}],
+      [{"node":"Blocked","type":"main","index":0}]
+    ]},
+    "Cal.com Book":{"main":[[{"node":"Save Appointment","type":"main","index":0}]]},
+    "Save Appointment":{"main":[[{"node":"Send Confirmation + SOA Link","type":"main","index":0}]]},
+    "Send Confirmation + SOA Link":{"main":[[{"node":"SMS Confirmation","type":"main","index":0}]]},
+    "SMS Confirmation":{"main":[[{"node":"OK","type":"main","index":0}]]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","appointments"]
+}

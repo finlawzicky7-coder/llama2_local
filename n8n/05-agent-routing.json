@@ -1,0 +1,139 @@
+{
+  "name": "05 - Agent Routing",
+  "nodes": [
+    {
+      "parameters":{"httpMethod":"POST","path":"medicare-route-lead","responseMode":"responseNode"},
+      "id":"wh","name":"Routing Webhook","type":"n8n-nodes-base.webhook","typeVersion":1,
+      "position":[200,320],"webhookId":"medicare-route-lead"
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/fn_route_lead",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"p_lead_id\":\"{{$json.body.lead_id}}\"}"
+      },
+      "id":"route","name":"Route to Agent","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,320]
+    },
+    {
+      "parameters":{
+        "conditions":{"string":[{"value1":"={{$json}}","operation":"isNotEmpty"}]}
+      },
+      "id":"check-agent","name":"Agent Found?","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[640,320]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/lead_assignments",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"lead_id\":\"{{$('Routing Webhook').item.json.body.lead_id}}\",\n  \"agent_id\":\"{{$('Route to Agent').item.json}}\",\n  \"reason\":\"speed_to_lead\",\n  \"routed_by\":\"workflow_05\"\n}"
+      },
+      "id":"assign","name":"Record Assignment","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[860,200]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/leads?id=eq.{{$('Routing Webhook').item.json.body.lead_id}}",
+        "method":"PATCH","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"assigned_agent_id\":\"{{$('Route to Agent').item.json}}\",\"assigned_at\":\"{{$now.toISOString()}}\",\"status\":\"assigned\"}"
+      },
+      "id":"update","name":"Update Lead","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1080,200]
+    },
+    {
+      "parameters":{
+        "conditions":{"string":[{"value1":"={{$('Routing Webhook').item.json.body.bucket}}","operation":"equal","value2":"hot"}]}
+      },
+      "id":"if-hot","name":"If HOT","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[1300,200]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.N8N_BASE_URL}}/webhook/medicare-dial",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"Content-Type","value":"application/json"},
+          {"name":"x-internal-token","value":"={{$env.N8N_INTERNAL_TOKEN}}"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"lead_id\":\"{{$('Routing Webhook').item.json.body.lead_id}}\",\"agent_id\":\"{{$('Route to Agent').item.json}}\"}"
+      },
+      "id":"dial","name":"Speed-to-Lead Dial","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1520,100]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.N8N_BASE_URL}}/webhook/medicare-followup-cadence",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"Content-Type","value":"application/json"},
+          {"name":"x-internal-token","value":"={{$env.N8N_INTERNAL_TOKEN}}"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"lead_id\":\"{{$('Routing Webhook').item.json.body.lead_id}}\",\"bucket\":\"{{$('Routing Webhook').item.json.body.bucket}}\"}"
+      },
+      "id":"cadence","name":"Drip Cadence","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1520,300]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/compliance_audit_events",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"lead_id\":\"{{$('Routing Webhook').item.json.body.lead_id}}\",\"event_type\":\"license_missing\",\"result\":\"fail\",\"severity\":\"warn\",\"source_workflow\":\"05-agent-routing\"}"
+      },
+      "id":"audit","name":"Audit No Agent","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[860,440]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"routed\"}"},
+      "id":"ok","name":"OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1740,200]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"no_eligible_agent\"}"},
+      "id":"none","name":"None","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1080,440]
+    }
+  ],
+  "connections":{
+    "Routing Webhook":{"main":[[{"node":"Route to Agent","type":"main","index":0}]]},
+    "Route to Agent":{"main":[[{"node":"Agent Found?","type":"main","index":0}]]},
+    "Agent Found?":{"main":[
+      [{"node":"Record Assignment","type":"main","index":0}],
+      [{"node":"Audit No Agent","type":"main","index":0}]
+    ]},
+    "Record Assignment":{"main":[[{"node":"Update Lead","type":"main","index":0}]]},
+    "Update Lead":{"main":[[{"node":"If HOT","type":"main","index":0}]]},
+    "If HOT":{"main":[
+      [{"node":"Speed-to-Lead Dial","type":"main","index":0}],
+      [{"node":"Drip Cadence","type":"main","index":0}]
+    ]},
+    "Speed-to-Lead Dial":{"main":[[{"node":"OK","type":"main","index":0}]]},
+    "Drip Cadence":{"main":[[{"node":"OK","type":"main","index":0}]]},
+    "Audit No Agent":{"main":[[{"node":"None","type":"main","index":0}]]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","routing"]
+}

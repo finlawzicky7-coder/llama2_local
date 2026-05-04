@@ -1,0 +1,163 @@
+{
+  "name": "01 - Lead Capture",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "medicare-lead-capture",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-1",
+      "name": "Lead Capture Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [220, 320],
+      "webhookId": "medicare-lead-capture"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Verify HMAC signature on the raw body to prevent forged submissions.\nconst crypto = require('crypto');\nconst secret = $env.WEBHOOK_HMAC_SECRET;\nconst signature = $request.headers['x-signature'] || '';\nconst expected = crypto.createHmac('sha256', secret).update($json.rawBody || JSON.stringify($json)).digest('hex');\nif (!signature || signature !== expected) {\n  throw new Error('Invalid HMAC signature');\n}\nreturn items;"
+      },
+      "id": "hmac-1",
+      "name": "Verify HMAC",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Validate, normalize, hash. Reject if any required field is missing.\nconst libPhone = require('libphonenumber-js');\nconst out = [];\nfor (const item of items) {\n  const b = item.json.body || item.json;\n  const required = ['first_name','last_name','phone','email','zip_code','state','source','consent_given','consent_text','consent_version','tpmo_disclaimer_shown'];\n  for (const k of required) {\n    if (b[k] === undefined || b[k] === null || b[k] === '') throw new Error(`Missing required field: ${k}`);\n  }\n  if (b.consent_given !== true) throw new Error('consent_given must be true');\n  if (b.tpmo_disclaimer_shown !== true) throw new Error('tpmo_disclaimer_shown must be true');\n  let phoneE164 = b.phone;\n  try {\n    const p = libPhone.parsePhoneNumberFromString(b.phone, 'US');\n    if (!p || !p.isValid()) throw new Error('invalid phone');\n    phoneE164 = p.number;\n  } catch (e) { throw new Error('Phone parse failed: ' + e.message); }\n  out.push({ json: { ...b, phone: phoneE164,\n    ip_address: $request.headers['cf-connecting-ip'] || $request.headers['x-forwarded-for'] || null,\n    user_agent: $request.headers['user-agent'] || null,\n    received_at: new Date().toISOString()\n  }});\n}\nreturn out;"
+      },
+      "id": "validate-1",
+      "name": "Validate & Normalize",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [660, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "Prefer", "value": "return=representation"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"first_name\": \"{{$json.first_name}}\",\n  \"last_name\": \"{{$json.last_name}}\",\n  \"phone\": \"{{$json.phone}}\",\n  \"email\": \"{{$json.email}}\",\n  \"zip_code\": \"{{$json.zip_code}}\",\n  \"state\": \"{{$json.state}}\",\n  \"medicare_status\": \"{{$json.medicare_status}}\",\n  \"current_plan_type\": \"{{$json.current_plan_type}}\",\n  \"desired_help\": \"{{$json.desired_help}}\",\n  \"source\": \"{{$json.source}}\",\n  \"campaign_id\": \"{{$json.campaign_id}}\",\n  \"landing_page_url\": \"{{$json.landing_page_url}}\",\n  \"utm_source\": \"{{$json.utm_source}}\",\n  \"utm_medium\": \"{{$json.utm_medium}}\",\n  \"utm_campaign\": \"{{$json.utm_campaign}}\",\n  \"utm_content\": \"{{$json.utm_content}}\",\n  \"utm_term\": \"{{$json.utm_term}}\",\n  \"referrer_url\": \"{{$json.referrer_url}}\",\n  \"ip_address\": \"{{$json.ip_address}}\",\n  \"user_agent\": \"{{$json.user_agent}}\",\n  \"consent_valid\": true,\n  \"status\": \"pending_compliance\"\n}"
+      },
+      "id": "insert-lead-1",
+      "name": "Insert Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [880, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/consent_logs",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{$json[0].id}}\",\n  \"consent_type\": \"tcpa_phone\",\n  \"consent_text\": \"{{$('Validate & Normalize').item.json.consent_text}}\",\n  \"consent_version\": \"{{$('Validate & Normalize').item.json.consent_version}}\",\n  \"ip_address\": \"{{$('Validate & Normalize').item.json.ip_address}}\",\n  \"user_agent\": \"{{$('Validate & Normalize').item.json.user_agent}}\",\n  \"landing_page_url\": \"{{$('Validate & Normalize').item.json.landing_page_url}}\",\n  \"consented_entities\": {{JSON.stringify($('Validate & Normalize').item.json.consented_entities || [])}},\n  \"consent_given\": true\n}"
+      },
+      "id": "consent-1",
+      "name": "Insert Consent Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/rpc/fn_dedupe_lead",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"p_lead_id\": \"{{$('Insert Lead').item.json[0].id}}\"}"
+      },
+      "id": "dedupe-1",
+      "name": "Dedupe Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1320, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.N8N_BASE_URL}}/webhook/medicare-compliance-gate",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "x-internal-token", "value": "={{$env.N8N_INTERNAL_TOKEN}}"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"lead_id\": \"{{$('Insert Lead').item.json[0].id}}\"}"
+      },
+      "id": "trigger-gate-1",
+      "name": "Trigger Compliance Gate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1540, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"received\",\"lead_id\":\"{{$('Insert Lead').item.json[0].id}}\"}"
+      },
+      "id": "respond-1",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1760, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 400,
+        "responseBody": "={\"status\":\"rejected\",\"error\":\"{{$json.error.message}}\"}"
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [880, 520]
+    }
+  ],
+  "connections": {
+    "Lead Capture Webhook": {"main": [[{"node": "Verify HMAC", "type": "main", "index": 0}]]},
+    "Verify HMAC": {"main": [[{"node": "Validate & Normalize", "type": "main", "index": 0}]]},
+    "Validate & Normalize": {"main": [[{"node": "Insert Lead", "type": "main", "index": 0}]]},
+    "Insert Lead": {"main": [[{"node": "Insert Consent Log", "type": "main", "index": 0}]]},
+    "Insert Consent Log": {"main": [[{"node": "Dedupe Lead", "type": "main", "index": 0}]]},
+    "Dedupe Lead": {"main": [[{"node": "Trigger Compliance Gate", "type": "main", "index": 0}]]},
+    "Trigger Compliance Gate": {"main": [[{"node": "Respond OK", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "tags": ["medicare","capture"]
+}

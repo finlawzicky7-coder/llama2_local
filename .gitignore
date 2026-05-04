@@ -1,0 +1,23 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Node / build artifacts (if a future API surface ships here)
+node_modules/
+dist/
+build/
+
+# n8n local exports / credentials
+.n8n/
+*.credential.json

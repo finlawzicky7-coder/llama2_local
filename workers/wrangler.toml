@@ -1,0 +1,43 @@
+#:schema node_modules/wrangler/config-schema.json
+
+# Two Workers in one project — deploy each with `wrangler deploy --env <name>`.
+
+name = "medicare-edge"
+compatibility_date = "2025-04-01"
+workers_dev = false
+
+# ---------------------------------------------------------------------
+# Worker 1: HMAC proxy in front of n8n's lead-capture webhook.
+# Bound to www.your-agency.com/api/lead-capture
+# ---------------------------------------------------------------------
+[env.lead_capture]
+name = "medicare-lead-capture-proxy"
+main = "lead-capture-proxy.ts"
+routes = [
+  { pattern = "www.your-agency.com/api/lead-capture", zone_name = "your-agency.com" }
+]
+
+# Secrets (run `wrangler secret put <NAME> --env lead_capture`):
+#   TURNSTILE_SECRET
+#   WEBHOOK_HMAC_SECRET
+#   N8N_LEAD_CAPTURE_URL
+
+# ---------------------------------------------------------------------
+# Worker 2: TwiML bridge for outbound dialer.
+# Bound to api.your-agency.com/twiml/medicare-bridge
+# ---------------------------------------------------------------------
+[env.twiml_bridge]
+name = "medicare-twiml-bridge"
+main = "twiml-bridge.ts"
+routes = [
+  { pattern = "api.your-agency.com/twiml/medicare-bridge", zone_name = "your-agency.com" }
+]
+
+# Secrets (run `wrangler secret put <NAME> --env twiml_bridge`):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   TWILIO_FROM_NUMBER
+#   N8N_RECORDING_WEBHOOK_URL
+#   AGENCY_NAME
+#   N_CARRIERS
+#   N_PLANS

@@ -1,0 +1,143 @@
+{
+  "name": "07 - Multi-Channel Follow-up Cadence",
+  "nodes": [
+    {
+      "parameters":{"httpMethod":"POST","path":"medicare-followup-cadence","responseMode":"responseNode"},
+      "id":"wh","name":"Cadence Webhook","type":"n8n-nodes-base.webhook","typeVersion":1,
+      "position":[200,320],"webhookId":"medicare-followup-cadence"
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/v_lead_reachable?id=eq.{{$json.body.lead_id}}&select=*",
+        "method":"GET","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+        ]}
+      },
+      "id":"fetch","name":"Fetch + Reachability","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,320]
+    },
+    {
+      "parameters":{"conditions":{"boolean":[{"value1":"={{$json[0].is_reachable}}","value2":true}]}},
+      "id":"if","name":"If Reachable","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[640,320]
+    },
+    {
+      "parameters":{"functionCode":"// Build a 14-day cadence based on bucket. Each step has channel + delay_minutes + template.\nconst lead = items[0].json[0];\nconst bucket = lead.bucket;\nconst FIRST_NAME = lead.first_name || 'there';\nconst AGENT_FIRST = 'your licensed agent';\nconst BIZ = 'Acme Insurance';\nconst tpmoShort = `We do not offer every plan available in your area. Currently we represent multiple carriers and offer products in your area. Please contact Medicare.gov, 1-800-MEDICARE, or your local SHIP for all your options.`;\nconst hot = [\n  {channel:'sms',  delay:0,    body:`Hi ${FIRST_NAME}, this is ${BIZ}. We received your Medicare review request and tried to reach you. ${tpmoShort} Reply STOP to opt out. Reply HELP for help. Reply CALL to schedule.`},\n  {channel:'email',delay:5,    template:'speed_to_lead_email_v1'},\n  {channel:'voicemail', delay:30, template:'speed_to_lead_vm_v1'},\n  {channel:'sms',  delay:60*4,  body:`${FIRST_NAME}, still happy to help review your Medicare options. Reply CALL to schedule with a licensed agent. Reply STOP to opt out.`},\n  {channel:'email',delay:60*24, template:'day1_followup_v1'},\n  {channel:'sms',  delay:60*24*3,body:`${FIRST_NAME}, would tomorrow work for a quick 15-min review? Reply YES or pick a time. STOP to opt out.`},\n  {channel:'email',delay:60*24*7, template:'day7_education_v1'},\n  {channel:'email',delay:60*24*14,template:'day14_lastcall_v1'}\n];\nconst warm = hot.slice(1); // skip the immediate SMS\nconst nurture = [\n  {channel:'email', delay:60*24*1, template:'edu_day1'},\n  {channel:'email', delay:60*24*4, template:'edu_day4'},\n  {channel:'email', delay:60*24*7, template:'edu_day7'},\n  {channel:'email', delay:60*24*14,template:'edu_day14'},\n  {channel:'email', delay:60*24*30,template:'monthly_evergreen'}\n];\nconst plan = bucket==='hot'?hot:bucket==='warm'?warm:nurture;\nreturn plan.map(step => ({json:{...step, lead_id: lead.id, phone: lead.phone, email: lead.email, first_name: FIRST_NAME}}));"},
+      "id":"plan","name":"Build Cadence","type":"n8n-nodes-base.function","typeVersion":1,
+      "position":[860,200]
+    },
+    {
+      "parameters":{
+        "amount":"={{$json.delay}}",
+        "unit":"minutes"
+      },
+      "id":"wait","name":"Wait","type":"n8n-nodes-base.wait","typeVersion":1,
+      "position":[1080,200]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/v_lead_reachable?id=eq.{{$json.lead_id}}&select=is_reachable,opt_out",
+        "method":"GET","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+        ]}
+      },
+      "id":"recheck","name":"Recheck Opt-out","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1300,200]
+    },
+    {
+      "parameters":{
+        "conditions":{"boolean":[{"value1":"={{$json[0].is_reachable}}","value2":true}]}
+      },
+      "id":"still","name":"Still Reachable?","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[1520,200]
+    },
+    {
+      "parameters":{
+        "rules":{"rules":[
+          {"value2":"sms"},{"value2":"email"},{"value2":"voicemail"}
+        ]},
+        "value":"={{$json.channel}}"
+      },
+      "id":"switch","name":"Channel Switch","type":"n8n-nodes-base.switch","typeVersion":1,
+      "position":[1740,100]
+    },
+    {
+      "parameters":{
+        "url":"https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "method":"POST","authentication":"genericCredentialType","genericAuthType":"httpBasicAuth",
+        "contentType":"form-urlencoded","sendBody":true,
+        "bodyParameters":{"parameters":[
+          {"name":"To","value":"={{$json.phone}}"},
+          {"name":"From","value":"={{$env.TWILIO_SMS_FROM}}"},
+          {"name":"Body","value":"={{$json.body}}"}
+        ]},
+        "credentials":{"httpBasicAuth":{"id":"twilio_basic","name":"Twilio Basic"}}
+      },
+      "id":"sms","name":"Send SMS","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1960,0]
+    },
+    {
+      "parameters":{
+        "url":"https://api.postmarkapp.com/email/withTemplate",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"X-Postmark-Server-Token","value":"={{$env.POSTMARK_TOKEN}}"},
+          {"name":"Accept","value":"application/json"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"From\":\"{{$env.EMAIL_FROM}}\",\n  \"To\":\"{{$json.email}}\",\n  \"TemplateAlias\":\"{{$json.template}}\",\n  \"TemplateModel\":{\"first_name\":\"{{$json.first_name}}\",\"unsubscribe_url\":\"https://{{$env.PUBLIC_HOST}}/u/{{$json.lead_id}}\"},\n  \"MessageStream\":\"medicare-broadcast\"\n}"
+      },
+      "id":"email","name":"Send Email","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1960,160]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.VM_DROP_URL}}/drops",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"Authorization","value":"=Bearer {{$env.VM_DROP_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"phone\":\"{{$json.phone}}\",\"audio_template\":\"{{$json.template}}\",\"caller_id\":\"{{$env.TWILIO_FROM_NUMBER}}\"}"
+      },
+      "id":"vm","name":"Voicemail Drop","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1960,320]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"cadence_scheduled\"}"},
+      "id":"ok","name":"OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[860,440]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"unreachable\"}"},
+      "id":"un","name":"Unreachable","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[640,500]
+    }
+  ],
+  "connections":{
+    "Cadence Webhook":{"main":[[{"node":"Fetch + Reachability","type":"main","index":0}]]},
+    "Fetch + Reachability":{"main":[[{"node":"If Reachable","type":"main","index":0}]]},
+    "If Reachable":{"main":[
+      [{"node":"Build Cadence","type":"main","index":0},{"node":"OK","type":"main","index":0}],
+      [{"node":"Unreachable","type":"main","index":0}]
+    ]},
+    "Build Cadence":{"main":[[{"node":"Wait","type":"main","index":0}]]},
+    "Wait":{"main":[[{"node":"Recheck Opt-out","type":"main","index":0}]]},
+    "Recheck Opt-out":{"main":[[{"node":"Still Reachable?","type":"main","index":0}]]},
+    "Still Reachable?":{"main":[
+      [{"node":"Channel Switch","type":"main","index":0}],
+      []
+    ]},
+    "Channel Switch":{"main":[
+      [{"node":"Send SMS","type":"main","index":0}],
+      [{"node":"Send Email","type":"main","index":0}],
+      [{"node":"Voicemail Drop","type":"main","index":0}]
+    ]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","cadence"]
+}

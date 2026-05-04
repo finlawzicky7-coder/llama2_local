@@ -1,0 +1,137 @@
+{
+  "name": "10 - Daily Compliance Audit",
+  "nodes": [
+    {
+      "parameters":{"rule":{"interval":[{"field":"cronExpression","expression":"0 3 * * *"}]}},
+      "id":"cron","name":"Cron 03:00","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1,
+      "position":[200,320]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/sql",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"query\": \"select c.id as call_log_id, c.lead_id, c.agent_id, c.duration_seconds, c.outcome, c.tpmo_disclaimer_given from call_logs c where c.created_at >= now() - interval '24 hours' and c.outcome in ('connected','appointment_set','sold') and c.tpmo_disclaimer_given = false;\"\n}"
+      },
+      "id":"missing-tpmo","name":"Find Missing TPMO","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,200]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/sql",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"query\": \"select c.id as call_log_id, c.lead_id, c.duration_seconds from call_logs c left join recordings r on r.call_log_id = c.id where c.created_at >= now() - interval '24 hours' and c.outcome in ('connected','appointment_set','sold') and r.id is null;\"\n}"
+      },
+      "id":"missing-rec","name":"Find Missing Recordings","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,320]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/sql",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"query\": \"select id from leads where opt_out=true and updated_at >= now() - interval '24 hours' and exists (select 1 from call_logs c where c.lead_id = leads.id and c.started_at > leads.opt_out_at);\"\n}"
+      },
+      "id":"optout-leak","name":"Find Opt-out Leaks","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,440]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/sql",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"query\": \"select l.id from leads l where exists (select 1 from call_logs c where c.lead_id=l.id and c.created_at >= now()-interval '24 hours' and not exists (select 1 from agent_licenses al where al.agent_id = c.agent_id and al.state = l.state and al.active and al.expires_at > now()));\"\n}"
+      },
+      "id":"unlicensed","name":"Find Unlicensed Outreach","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,560]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/rpc/sql",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"query\": \"select lead_id, fn_check_tpmo_consent_integrity(lead_id) ok from consent_logs where consent_type='multi_tpmo_share' and created_at >= now()-interval '7 days' group by lead_id;\"\n}"
+      },
+      "id":"multi-tpmo","name":"Validate Multi-TPMO Consents","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,680]
+    },
+    {
+      "parameters":{
+        "functionCode":"const tpmo = $input.itemMatching(0)?.json || [];\nconst rec  = $input.itemMatching(1)?.json || [];\nconst leak = $input.itemMatching(2)?.json || [];\nconst unlic= $input.itemMatching(3)?.json || [];\nconst mt   = $input.itemMatching(4)?.json || [];\nconst mtFails = mt.filter(r => r.ok === false);\nconst summary = {\n  missing_tpmo_disclaimer: tpmo.length,\n  missing_recordings: rec.length,\n  opt_out_leaks: leak.length,\n  unlicensed_outreach: unlic.length,\n  multi_tpmo_failures: mtFails.length,\n  generated_at: new Date().toISOString()\n};\nconst rows = [];\nfor (const r of tpmo) rows.push({event:'tpmo_missing', call_log_id:r.call_log_id, lead_id:r.lead_id, agent_id:r.agent_id});\nfor (const r of rec) rows.push({event:'recording_missing', call_log_id:r.call_log_id, lead_id:r.lead_id});\nfor (const r of leak) rows.push({event:'opt_out_leak', lead_id:r.id});\nfor (const r of unlic) rows.push({event:'unlicensed_outreach', lead_id:r.id});\nfor (const r of mtFails) rows.push({event:'multi_tpmo_consent_mismatch', lead_id:r.lead_id});\nreturn [{json:{summary, rows}}];"
+      },
+      "id":"agg","name":"Aggregate","type":"n8n-nodes-base.function","typeVersion":1,
+      "position":[660,440]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/compliance_audit_events",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"},
+          {"name":"Prefer","value":"return=minimal"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={{JSON.stringify($json.rows.map(r => ({lead_id:r.lead_id, call_log_id:r.call_log_id, agent_id:r.agent_id, event_type:r.event, severity:'critical', result:'fail', source_workflow:'10-daily-compliance-audit'})))}}"
+      },
+      "id":"write-audit","name":"Write Audit Events","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[880,440]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SLACK_WEBHOOK_URL}}",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"}]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"text\":\"*Daily Compliance Audit*\\nMissing TPMO: {{$json.summary.missing_tpmo_disclaimer}}\\nMissing recordings: {{$json.summary.missing_recordings}}\\nOpt-out leaks: {{$json.summary.opt_out_leaks}}\\nUnlicensed outreach: {{$json.summary.unlicensed_outreach}}\\nMulti-TPMO failures: {{$json.summary.multi_tpmo_failures}}\"}"
+      },
+      "id":"slack","name":"Slack Digest","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1100,440]
+    }
+  ],
+  "connections":{
+    "Cron 03:00":{"main":[[
+      {"node":"Find Missing TPMO","type":"main","index":0},
+      {"node":"Find Missing Recordings","type":"main","index":0},
+      {"node":"Find Opt-out Leaks","type":"main","index":0},
+      {"node":"Find Unlicensed Outreach","type":"main","index":0},
+      {"node":"Validate Multi-TPMO Consents","type":"main","index":0}
+    ]]},
+    "Find Missing TPMO":{"main":[[{"node":"Aggregate","type":"main","index":0}]]},
+    "Find Missing Recordings":{"main":[[{"node":"Aggregate","type":"main","index":1}]]},
+    "Find Opt-out Leaks":{"main":[[{"node":"Aggregate","type":"main","index":2}]]},
+    "Find Unlicensed Outreach":{"main":[[{"node":"Aggregate","type":"main","index":3}]]},
+    "Validate Multi-TPMO Consents":{"main":[[{"node":"Aggregate","type":"main","index":4}]]},
+    "Aggregate":{"main":[[{"node":"Write Audit Events","type":"main","index":0}]]},
+    "Write Audit Events":{"main":[[{"node":"Slack Digest","type":"main","index":0}]]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","compliance","cron"]
+}
