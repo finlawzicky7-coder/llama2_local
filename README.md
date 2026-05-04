@@ -14,10 +14,40 @@ supabase/migrations/   Idempotent SQL migrations (schema, indexes, RLS, views, s
 n8n/                   11 importable workflow JSON files
 ai/prompts/            System prompts for qualification, voice, chat, summarization, audit
 landing-pages/         Compliant HTML + consent-tracker.js
+workers/               Cloudflare Workers — HMAC lead-capture proxy + TwiML bridge
 dialer/                Dialer state machine, routing engine, recording policy
 sales/scripts/         First call, VM, SMS, email, objections, AEP, T65, no-show
-compliance/            TPMO disclaimer, consent language, pre-launch checklist, audit
-ops/                   KPI definitions, feedback loop, AI optimization spec
+compliance/            TPMO disclaimer, consent language, pre-launch checklist, officer runbook, audit
+ops/                   Execution runbook, vendor matrix, ad-account playbooks, KPIs, feedback loop, smoke-tests.sql
+onboarding/            Agent / license / carrier-appointment CSV templates
+scripts/               setup, seed-agents, verify-deployment, smoke-lead, cleanup-smoke
+Makefile               Operational targets (make help)
+```
+
+## Execution
+
+To go from this repo to live, follow `ops/execution-runbook.md` (Day 0 → Day 30 with explicit owners). The shortest path:
+
+```bash
+# 1. Apply schema
+SUPABASE_DB_URL=postgres://... make setup
+
+# 2. Onboard your team (edit onboarding/*.csv first)
+make seed
+
+# 3. Sanity-check the data model
+psql "$SUPABASE_DB_URL" -f ops/smoke-tests.sql
+
+# 4. Deploy the edge layer
+cd workers && wrangler deploy --env lead_capture && wrangler deploy --env twiml_bridge && cd ..
+
+# 5. Import n8n/01-11.json into n8n, set env vars from .env.example, activate
+
+# 6. Run preflight
+make verify
+
+# 7. End-to-end smoke (uses your real phone)
+make smoke
 ```
 
 ## Build order (read in this sequence)

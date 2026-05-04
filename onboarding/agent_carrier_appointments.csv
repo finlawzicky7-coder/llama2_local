@@ -1,0 +1,8 @@
+agent_email,carrier,state,product_lines,certified_at,expires_at
+riley@your-agency.com,humana,FL,"MA,MAPD,PDP",2025-09-01,2026-12-31
+riley@your-agency.com,aetna,FL,"MA,MAPD",2025-09-15,2026-12-31
+riley@your-agency.com,uhc,FL,"MA,MAPD,PDP",2025-09-01,2026-12-31
+riley@your-agency.com,humana,GA,"MA,MAPD,PDP",2025-09-01,2026-12-31
+jordan@your-agency.com,humana,TX,"MA,MAPD",2025-09-15,2026-12-31
+jordan@your-agency.com,wellcare,TX,"MA,MAPD,PDP",2025-09-15,2026-12-31
+jordan@your-agency.com,uhc,OK,"MA,MAPD",2025-09-15,2026-12-31
