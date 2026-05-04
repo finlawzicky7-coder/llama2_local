@@ -1,0 +1,63 @@
+{
+  "name": "11 - Campaign Performance Reporting",
+  "nodes": [
+    {
+      "parameters":{"rule":{"interval":[{"field":"cronExpression","expression":"0 * * * *"}]}},
+      "id":"cron","name":"Cron Hourly","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1,
+      "position":[200,320]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/v_kpi_daily?d=gte.{{$today.minus({days:7}).toFormat('yyyy-MM-dd')}}&order=d.desc",
+        "method":"GET","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+        ]}
+      },
+      "id":"kpi","name":"Pull KPIs","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,200]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/v_agent_funnel?order=sales.desc&limit=20",
+        "method":"GET","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+        ]}
+      },
+      "id":"funnel","name":"Pull Agent Funnel","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,440]
+    },
+    {
+      "parameters":{
+        "functionCode":"const kpis = $('Pull KPIs').first().json || [];\nconst funnel = $('Pull Agent Funnel').first().json || [];\nconst today = kpis.filter(k => k.d === new Date().toISOString().slice(0,10));\nconst sumSpend = today.reduce((a,r)=>a+(r.spend_cents||0),0)/100;\nconst sumLeads = today.reduce((a,r)=>a+(r.leads||0),0);\nconst sumAppts = today.reduce((a,r)=>a+(r.appts||0),0);\nconst sumSales = today.reduce((a,r)=>a+(r.sales||0),0);\nconst cpl = sumLeads>0 ? sumSpend/sumLeads : null;\nconst cpa = sumAppts>0 ? sumSpend/sumAppts : null;\nconst cps = sumSales>0 ? sumSpend/sumSales : null;\nconst topAgents = funnel.slice(0,5).map(a=>`• ${a.full_name}: ${a.sales} sales / ${a.appointments} appt / ${a.contacted} contacted / ${a.leads_assigned} assigned`).join('\\n');\nconst text = `*Medicare Funnel — last 24h*\\nSpend: $${sumSpend.toFixed(0)} | Leads: ${sumLeads} | Appts: ${sumAppts} | Sales: ${sumSales}\\nCPL: ${cpl?'$'+cpl.toFixed(2):'—'} | CPA: ${cpa?'$'+cpa.toFixed(2):'—'} | CPS: ${cps?'$'+cps.toFixed(2):'—'}\\n\\n*Top agents (lifetime)*\\n${topAgents}`;\nreturn [{json:{text}}];"
+      },
+      "id":"format","name":"Format Digest","type":"n8n-nodes-base.function","typeVersion":1,
+      "position":[660,320]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SLACK_WEBHOOK_URL}}",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"}]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"text\":\"{{$json.text}}\"}"
+      },
+      "id":"slack","name":"Slack Digest","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[880,320]
+    }
+  ],
+  "connections":{
+    "Cron Hourly":{"main":[[
+      {"node":"Pull KPIs","type":"main","index":0},
+      {"node":"Pull Agent Funnel","type":"main","index":0}
+    ]]},
+    "Pull KPIs":{"main":[[{"node":"Format Digest","type":"main","index":0}]]},
+    "Pull Agent Funnel":{"main":[[{"node":"Format Digest","type":"main","index":0}]]},
+    "Format Digest":{"main":[[{"node":"Slack Digest","type":"main","index":0}]]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","reporting"]
+}

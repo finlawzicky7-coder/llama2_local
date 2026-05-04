@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Turning 65 — Free Medicare Walkthrough · {{AGENCY_NAME}}</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand"><strong>{{AGENCY_NAME}}</strong> · Independent Medicare Insurance Agency</div>
+  <p class="not-affiliated"><strong>Not Medicare. Not affiliated with the federal government, CMS, or Medicare.gov.</strong></p>
+
+  <h1>Turning 65? Here's what to do — in plain language.</h1>
+  <p class="lede">Your Initial Enrollment Period is a 7-month window around your 65th birthday. Talk to a licensed agent about how Parts A, B, C, and D fit together — no plan pitches, no pressure.</p>
+
+  <div class="tpmo-disclaimer" id="tpmo-disclaimer" data-version="tpmo-2026-04-01-v3">
+    <p><strong>Important disclosure:</strong> We do not offer every plan available in your area. Currently we represent <span data-merge="N_CARRIERS">{{N_CARRIERS}}</span> organizations which offer <span data-merge="N_PLANS">{{N_PLANS}}</span> products in your area. Please contact <a href="https://www.medicare.gov" rel="nofollow noopener">Medicare.gov</a>, 1-800-MEDICARE, or your local <a href="https://www.shiphelp.org" rel="nofollow noopener">SHIP</a> to get information on all of your options.</p>
+  </div>
+</header>
+
+<main>
+  <section class="education">
+    <h2>The 7-month Initial Enrollment Period</h2>
+    <p>Your Initial Enrollment Period (IEP) starts 3 months before the month you turn 65, includes your birthday month, and ends 3 months after. Missing this window can lead to penalties on Part B and Part D.</p>
+    <p>A licensed agent can walk you through:</p>
+    <ul>
+      <li>How Original Medicare (Parts A &amp; B) works.</li>
+      <li>The difference between Medicare Advantage and Medicare Supplement (Medigap), in plain English.</li>
+      <li>How prescription drug coverage (Part D) is added.</li>
+      <li>What to do if you're still working and have employer coverage.</li>
+    </ul>
+  </section>
+
+  <section class="form-section">
+    <h2>Get a free 15-minute walkthrough</h2>
+    <form id="lead-form" novalidate>
+      <label>First name<input name="first_name" required autocomplete="given-name"></label>
+      <label>Last name<input name="last_name" required autocomplete="family-name"></label>
+      <label>Phone (US)<input name="phone" type="tel" required autocomplete="tel"></label>
+      <label>Email<input name="email" type="email" required autocomplete="email"></label>
+      <label>ZIP code<input name="zip_code" required pattern="\d{5}" autocomplete="postal-code"></label>
+      <label>State
+        <select name="state" required autocomplete="address-level1">
+          <option value="">Select…</option>
+          <!-- abbreviated for brevity in the snippet — copy the full list from medicare-review.html -->
+          <option>FL</option><option>TX</option><option>CA</option><option>NY</option><option>PA</option><option>OH</option>
+        </select>
+      </label>
+      <label>Birth month<input name="birth_month" type="number" min="1" max="12"></label>
+      <label>Birth year<input name="birth_year" type="number" min="1900" max="2025"></label>
+      <input type="hidden" name="medicare_status" value="turning_65">
+
+      <fieldset class="consent-block">
+        <legend>Your consent</legend>
+        <label class="consent-line">
+          <input type="checkbox" name="consent_tcpa" required>
+          <span>I authorize <strong>{{AGENCY_NAME}}</strong> and its assigned licensed agent to contact me at the phone and email I provided regarding Medicare insurance, including by automated dialing system, prerecorded voice, SMS, and email. Reply STOP to opt out. Consent is not a condition of any purchase.</span>
+        </label>
+        <label class="consent-line"><input type="checkbox" name="entity_self" data-entity="{{AGENCY_NAME}}" checked required> {{AGENCY_NAME}}</label>
+        <label class="consent-line"><input type="checkbox" name="consent_recording" required> <span>I understand calls may be recorded for quality and compliance.</span></label>
+        <label class="consent-line"><input type="checkbox" name="consent_tpmo_seen" required> <span>I have read the disclosure above stating that {{AGENCY_NAME}} does not offer every plan in my area.</span></label>
+      </fieldset>
+
+      <div class="cf-turnstile" data-sitekey="{{TURNSTILE_SITE_KEY}}" data-action="medicare-t65"></div>
+
+      <input type="hidden" name="source" value="t65_funnel">
+      <input type="hidden" name="campaign_id" value="{{CAMPAIGN_ID}}">
+      <input type="hidden" name="landing_page_url">
+      <input type="hidden" name="referrer_url">
+      <input type="hidden" name="utm_source">
+      <input type="hidden" name="utm_medium">
+      <input type="hidden" name="utm_campaign">
+      <input type="hidden" name="utm_content">
+      <input type="hidden" name="utm_term">
+
+      <button type="submit">Get my walkthrough</button>
+      <p class="fineprint">Submitting this form does not enroll you in any plan.</p>
+    </form>
+    <div id="thanks" hidden>
+      <h3>Thanks — we'll be in touch shortly.</h3>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>{{AGENCY_NAME}} · License #{{LICENSE_NUMBERS}} · {{ADDRESS}}</p>
+  <p class="footer-tpmo">We do not offer every plan available in your area. Currently we represent {{N_CARRIERS}} organizations which offer {{N_PLANS}} products in your area. Please contact Medicare.gov, 1-800-MEDICARE, or your local SHIP to get information on all of your options.</p>
+</footer>
+<script src="/consent-tracker.js" defer></script>
+</body>
+</html>

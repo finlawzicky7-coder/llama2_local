@@ -1,0 +1,284 @@
+{
+  "name": "02 - Compliance Gate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "medicare-compliance-gate",
+        "responseMode": "responseNode"
+      },
+      "id": "wh-1",
+      "name": "Compliance Gate Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 320],
+      "webhookId": "medicare-compliance-gate"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads?id=eq.{{$json.body.lead_id}}&select=*",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+          ]
+        }
+      },
+      "id": "fetch-lead",
+      "name": "Fetch Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [420, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/suppression_list?or=(phone_hash.eq.{{$json[0].phone_hash}},email_hash.eq.{{$json[0].email_hash}})&select=id",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+          ]
+        }
+      },
+      "id": "internal-block",
+      "name": "Internal Suppression Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [640, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [{"value1": "={{$json.length}}", "operation": "larger", "value2": 0}]
+        }
+      },
+      "id": "if-internal-block",
+      "name": "If Suppressed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [860, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.DNC_VENDOR_URL}}/check",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "=Bearer {{$env.DNC_VENDOR_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"phone\":\"{{$('Fetch Lead').item.json[0].phone}}\",\"state\":\"{{$('Fetch Lead').item.json[0].state}}\"}",
+        "options": {
+          "timeout": 8000,
+          "retry": {"retryOnFail": true, "maxTries": 3}
+        }
+      },
+      "id": "dnc-check",
+      "name": "DNC Vendor Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1080, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/dnc_checks",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{$('Fetch Lead').item.json[0].id}}\",\n  \"phone\": \"{{$('Fetch Lead').item.json[0].phone}}\",\n  \"vendor\": \"{{$env.DNC_VENDOR_NAME}}\",\n  \"result\": \"{{$json.status}}\",\n  \"raw_response\": {{JSON.stringify($json)}}\n}"
+      },
+      "id": "log-dnc",
+      "name": "Log DNC Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{"value1": "={{$('DNC Vendor Check').item.json.status}}", "operation": "equal", "value2": "clear"}]
+        }
+      },
+      "id": "if-clear",
+      "name": "If DNC Clear",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1520, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/agent_licenses?state=eq.{{$('Fetch Lead').item.json[0].state}}&active=eq.true&select=agent_id&limit=1",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+          ]
+        }
+      },
+      "id": "license-check",
+      "name": "License Coverage Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1740, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [{"value1": "={{$json.length}}", "operation": "larger", "value2": 0}]
+        }
+      },
+      "id": "if-licensed",
+      "name": "If Licensed In State",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1960, 100]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads?id=eq.{{$('Fetch Lead').item.json[0].id}}",
+        "method": "PATCH",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"dnc_status\": \"clear\",\n  \"dnc_checked_at\": \"{{$now.toISOString()}}\",\n  \"status\": \"qualifying\"\n}"
+      },
+      "id": "mark-pass",
+      "name": "Mark Lead Cleared",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2180, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.N8N_BASE_URL}}/webhook/medicare-ai-qualify",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "x-internal-token", "value": "={{$env.N8N_INTERNAL_TOKEN}}"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"lead_id\":\"{{$('Fetch Lead').item.json[0].id}}\"}"
+      },
+      "id": "trigger-ai",
+      "name": "Trigger AI Qualification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2400, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads?id=eq.{{$('Fetch Lead').item.json[0].id}}",
+        "method": "PATCH",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"dnc_status\": \"{{$('DNC Vendor Check').item.json.status || 'internal_block'}}\",\n  \"status\": \"blocked\",\n  \"bucket\": \"blocked\"\n}"
+      },
+      "id": "mark-fail",
+      "name": "Mark Lead Blocked",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1740, 460]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/compliance_audit_events",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{$('Fetch Lead').item.json[0].id}}\",\n  \"event_type\": \"compliance_gate_fail\",\n  \"result\": \"fail\",\n  \"severity\": \"warn\",\n  \"source_workflow\": \"02-compliance-gate\",\n  \"details\": {\"reason\":\"{{$json.reason || 'blocked'}}\"}\n}"
+      },
+      "id": "audit-fail",
+      "name": "Audit Block",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1960, 460]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={\"status\":\"passed\"}"},
+      "id": "ok",
+      "name": "OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2620, 0]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={\"status\":\"blocked\"}"},
+      "id": "blocked",
+      "name": "Blocked",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2180, 460]
+    }
+  ],
+  "connections": {
+    "Compliance Gate Webhook": {"main": [[{"node": "Fetch Lead","type":"main","index":0}]]},
+    "Fetch Lead": {"main": [[{"node": "Internal Suppression Check","type":"main","index":0}]]},
+    "Internal Suppression Check": {"main": [[{"node": "If Suppressed","type":"main","index":0}]]},
+    "If Suppressed": {"main": [
+      [{"node": "Mark Lead Blocked","type":"main","index":0}],
+      [{"node": "DNC Vendor Check","type":"main","index":0}]
+    ]},
+    "DNC Vendor Check": {"main": [[{"node": "Log DNC Check","type":"main","index":0}]]},
+    "Log DNC Check": {"main": [[{"node": "If DNC Clear","type":"main","index":0}]]},
+    "If DNC Clear": {"main": [
+      [{"node": "License Coverage Check","type":"main","index":0}],
+      [{"node": "Mark Lead Blocked","type":"main","index":0}]
+    ]},
+    "License Coverage Check": {"main": [[{"node": "If Licensed In State","type":"main","index":0}]]},
+    "If Licensed In State": {"main": [
+      [{"node": "Mark Lead Cleared","type":"main","index":0}],
+      [{"node": "Mark Lead Blocked","type":"main","index":0}]
+    ]},
+    "Mark Lead Cleared": {"main": [[{"node": "Trigger AI Qualification","type":"main","index":0}]]},
+    "Trigger AI Qualification": {"main": [[{"node": "OK","type":"main","index":0}]]},
+    "Mark Lead Blocked": {"main": [[{"node": "Audit Block","type":"main","index":0}]]},
+    "Audit Block": {"main": [[{"node": "Blocked","type":"main","index":0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "tags": ["medicare","compliance"]
+}

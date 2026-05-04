@@ -1,0 +1,144 @@
+{
+  "name": "06 - Dialer Trigger (Speed-to-Lead)",
+  "nodes": [
+    {
+      "parameters":{"httpMethod":"POST","path":"medicare-dial","responseMode":"responseNode"},
+      "id":"wh","name":"Dial Webhook","type":"n8n-nodes-base.webhook","typeVersion":1,
+      "position":[200,320],"webhookId":"medicare-dial"
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/v_lead_reachable?id=eq.{{$json.body.lead_id}}&select=*",
+        "method":"GET","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"}
+        ]}
+      },
+      "id":"reach","name":"Reachability Recheck","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[420,320]
+    },
+    {
+      "parameters":{
+        "conditions":{"boolean":[{"value1":"={{$json[0].is_reachable}}","value2":true}]}
+      },
+      "id":"if-reach","name":"If Reachable","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[640,320]
+    },
+    {
+      "parameters":{
+        "functionCode":"// TCPA call-time guard: enforce 8am–9pm in lead's local time.\nconst { DateTime } = require('luxon');\nconst tz = items[0].json[0].timezone || 'America/New_York';\nconst now = DateTime.now().setZone(tz);\nif (now.hour < 8 || now.hour >= 21) {\n  return [{json:{...items[0].json[0], call_allowed: false, reason:'outside_call_window', queued_for: now.set({hour:9,minute:0}).plus({days: now.hour>=21?1:0}).toISO()}}];\n}\nreturn [{json:{...items[0].json[0], call_allowed: true}}];"
+      },
+      "id":"calltime","name":"TCPA Call-Time Check","type":"n8n-nodes-base.function","typeVersion":1,
+      "position":[860,200]
+    },
+    {
+      "parameters":{
+        "conditions":{"boolean":[{"value1":"={{$json.call_allowed}}","value2":true}]}
+      },
+      "id":"if-window","name":"In Window?","type":"n8n-nodes-base.if","typeVersion":1,
+      "position":[1080,200]
+    },
+    {
+      "parameters":{
+        "url":"https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Calls.json",
+        "method":"POST","authentication":"genericCredentialType","genericAuthType":"httpBasicAuth",
+        "sendHeaders":true,"headerParameters":{"parameters":[
+          {"name":"Content-Type","value":"application/x-www-form-urlencoded"}
+        ]},
+        "sendBody":true,"contentType":"form-urlencoded",
+        "bodyParameters":{"parameters":[
+          {"name":"To","value":"={{$json.phone}}"},
+          {"name":"From","value":"={{$env.TWILIO_FROM_NUMBER}}"},
+          {"name":"Url","value":"={{$env.PUBLIC_BASE_URL}}/twiml/medicare-bridge?lead_id={{$json.id}}&agent_id={{$('Dial Webhook').item.json.body.agent_id}}"},
+          {"name":"StatusCallback","value":"={{$env.N8N_BASE_URL}}/webhook/twilio-status"},
+          {"name":"StatusCallbackEvent","value":"initiated"},
+          {"name":"StatusCallbackEvent","value":"answered"},
+          {"name":"StatusCallbackEvent","value":"completed"},
+          {"name":"Record","value":"true"},
+          {"name":"RecordingStatusCallback","value":"={{$env.N8N_BASE_URL}}/webhook/twilio-recording"},
+          {"name":"RecordingChannels","value":"dual"},
+          {"name":"Timeout","value":"25"}
+        ]}
+      },
+      "id":"twilio","name":"Twilio Outbound + Bridge","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1300,100],
+      "credentials":{"httpBasicAuth":{"id":"twilio_basic","name":"Twilio Basic"}}
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/call_logs",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\n  \"lead_id\":\"{{$('Reachability Recheck').item.json[0].id}}\",\n  \"agent_id\":\"{{$('Dial Webhook').item.json.body.agent_id}}\",\n  \"call_provider\":\"twilio\",\n  \"provider_call_sid\":\"{{$json.sid}}\",\n  \"direction\":\"outbound\",\n  \"from_number\":\"{{$json.from_formatted || $env.TWILIO_FROM_NUMBER}}\",\n  \"to_number\":\"{{$('Reachability Recheck').item.json[0].phone}}\",\n  \"started_at\":\"{{$now.toISOString()}}\"\n}"
+      },
+      "id":"log","name":"Log Call Initiated","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1520,100]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.N8N_BASE_URL}}/webhook/medicare-followup-cadence",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"Content-Type","value":"application/json"},
+          {"name":"x-internal-token","value":"={{$env.N8N_INTERNAL_TOKEN}}"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"lead_id\":\"{{$('Reachability Recheck').item.json[0].id}}\",\"queued_for\":\"{{$json.queued_for}}\"}"
+      },
+      "id":"queue","name":"Queue for Window","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[1300,300]
+    },
+    {
+      "parameters":{
+        "url":"={{$env.SUPABASE_URL}}/rest/v1/compliance_audit_events",
+        "method":"POST","sendHeaders":true,
+        "headerParameters":{"parameters":[
+          {"name":"apikey","value":"={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Authorization","value":"=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+          {"name":"Content-Type","value":"application/json"}
+        ]},
+        "sendBody":true,"specifyBody":"json",
+        "jsonBody":"={\"lead_id\":\"{{$('Dial Webhook').item.json.body.lead_id}}\",\"event_type\":\"dial_blocked_unreachable\",\"result\":\"fail\",\"severity\":\"warn\",\"source_workflow\":\"06-dialer-trigger\"}"
+      },
+      "id":"audit","name":"Audit Unreachable","type":"n8n-nodes-base.httpRequest","typeVersion":4,
+      "position":[860,440]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"calling\",\"sid\":\"{{$('Twilio Outbound + Bridge').item.json.sid}}\"}"},
+      "id":"ok","name":"OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1740,100]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"queued\"}"},
+      "id":"qok","name":"Queued","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1520,300]
+    },
+    {
+      "parameters":{"respondWith":"json","responseBody":"={\"status\":\"unreachable\"}"},
+      "id":"un","name":"Unreachable","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1080,440]
+    }
+  ],
+  "connections":{
+    "Dial Webhook":{"main":[[{"node":"Reachability Recheck","type":"main","index":0}]]},
+    "Reachability Recheck":{"main":[[{"node":"If Reachable","type":"main","index":0}]]},
+    "If Reachable":{"main":[
+      [{"node":"TCPA Call-Time Check","type":"main","index":0}],
+      [{"node":"Audit Unreachable","type":"main","index":0}]
+    ]},
+    "TCPA Call-Time Check":{"main":[[{"node":"In Window?","type":"main","index":0}]]},
+    "In Window?":{"main":[
+      [{"node":"Twilio Outbound + Bridge","type":"main","index":0}],
+      [{"node":"Queue for Window","type":"main","index":0}]
+    ]},
+    "Twilio Outbound + Bridge":{"main":[[{"node":"Log Call Initiated","type":"main","index":0}]]},
+    "Log Call Initiated":{"main":[[{"node":"OK","type":"main","index":0}]]},
+    "Queue for Window":{"main":[[{"node":"Queued","type":"main","index":0}]]},
+    "Audit Unreachable":{"main":[[{"node":"Unreachable","type":"main","index":0}]]}
+  },
+  "settings":{"executionOrder":"v1"},
+  "tags":["medicare","dialer"]
+}

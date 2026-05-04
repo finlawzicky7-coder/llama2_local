@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AEP Medicare Plan Review · {{AGENCY_NAME}}</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand"><strong>{{AGENCY_NAME}}</strong> · Independent Medicare Insurance Agency</div>
+  <p class="not-affiliated"><strong>Not Medicare. Not affiliated with the federal government, CMS, or Medicare.gov.</strong></p>
+  <h1>Annual Enrollment is Oct 15 – Dec 7. Get a fresh look at your coverage.</h1>
+  <p class="lede">Plans change every year. So do your doctors, prescriptions, and budget. A licensed agent will help you compare what's available where you live — without recommending anything until they understand your situation.</p>
+
+  <div class="tpmo-disclaimer" id="tpmo-disclaimer" data-version="tpmo-2026-04-01-v3">
+    <p><strong>Important disclosure:</strong> We do not offer every plan available in your area. Currently we represent <span data-merge="N_CARRIERS">{{N_CARRIERS}}</span> organizations which offer <span data-merge="N_PLANS">{{N_PLANS}}</span> products in your area. Please contact <a href="https://www.medicare.gov" rel="nofollow noopener">Medicare.gov</a>, 1-800-MEDICARE, or your local <a href="https://www.shiphelp.org" rel="nofollow noopener">SHIP</a> to get information on all of your options.</p>
+  </div>
+</header>
+
+<main>
+  <section class="education">
+    <h2>Why an annual review is worth your time</h2>
+    <ul>
+      <li>Plans send Annual Notice of Change letters in September. Most beneficiaries don't read them in detail.</li>
+      <li>Your prescriptions might be on a different tier next year, or off-formulary entirely.</li>
+      <li>Your doctors' network status can change at the start of the year.</li>
+    </ul>
+    <p><em>We don't push a "best plan" — we help you compare clearly. If your current plan is the right one, we'll tell you that too.</em></p>
+  </section>
+
+  <section class="form-section">
+    <h2>Request a 15-minute AEP review</h2>
+    <form id="lead-form" novalidate>
+      <label>First name<input name="first_name" required></label>
+      <label>Last name<input name="last_name" required></label>
+      <label>Phone<input name="phone" type="tel" required></label>
+      <label>Email<input name="email" type="email" required></label>
+      <label>ZIP<input name="zip_code" required pattern="\d{5}"></label>
+      <label>State<select name="state" required>
+        <option value="">Select…</option>
+        <option>FL</option><option>TX</option><option>CA</option><option>NY</option><option>PA</option><option>OH</option>
+      </select></label>
+      <input type="hidden" name="medicare_status" value="on_medicare">
+      <label>Current plan type
+        <select name="current_plan_type">
+          <option value="">Select…</option>
+          <option value="MA">Medicare Advantage</option>
+          <option value="MAPD">Medicare Advantage with Drug Coverage</option>
+          <option value="MS">Medicare Supplement (Medigap)</option>
+          <option value="PDP">Standalone Part D</option>
+          <option value="original">Original Medicare only</option>
+          <option value="none">I'm not sure</option>
+        </select>
+      </label>
+
+      <fieldset class="consent-block">
+        <legend>Your consent</legend>
+        <label class="consent-line">
+          <input type="checkbox" name="consent_tcpa" required>
+          <span>I authorize <strong>{{AGENCY_NAME}}</strong> and its assigned licensed agent to contact me at the phone and email I provided regarding Medicare insurance, including by automated dialing system, prerecorded voice, SMS, and email. Reply STOP to opt out. Consent is not a condition of any purchase.</span>
+        </label>
+        <label class="consent-line"><input type="checkbox" name="entity_self" data-entity="{{AGENCY_NAME}}" checked required> {{AGENCY_NAME}}</label>
+        <label class="consent-line"><input type="checkbox" name="consent_recording" required> <span>I understand calls may be recorded for quality and compliance.</span></label>
+        <label class="consent-line"><input type="checkbox" name="consent_tpmo_seen" required> <span>I have read the disclosure above stating that {{AGENCY_NAME}} does not offer every plan in my area.</span></label>
+      </fieldset>
+
+      <div class="cf-turnstile" data-sitekey="{{TURNSTILE_SITE_KEY}}" data-action="medicare-aep"></div>
+
+      <input type="hidden" name="source" value="aep_funnel">
+      <input type="hidden" name="campaign_id" value="{{CAMPAIGN_ID}}">
+      <input type="hidden" name="landing_page_url">
+      <input type="hidden" name="referrer_url">
+      <input type="hidden" name="utm_source">
+      <input type="hidden" name="utm_medium">
+      <input type="hidden" name="utm_campaign">
+
+      <button type="submit">Request my AEP review</button>
+    </form>
+    <div id="thanks" hidden><h3>Thanks — we'll be in touch shortly.</h3></div>
+  </section>
+</main>
+
+<footer>
+  <p>{{AGENCY_NAME}} · License #{{LICENSE_NUMBERS}} · {{ADDRESS}}</p>
+  <p class="footer-tpmo">We do not offer every plan available in your area. Currently we represent {{N_CARRIERS}} organizations which offer {{N_PLANS}} products in your area. Please contact Medicare.gov, 1-800-MEDICARE, or your local SHIP to get information on all of your options.</p>
+</footer>
+<script src="/consent-tracker.js" defer></script>
+</body>
+</html>
