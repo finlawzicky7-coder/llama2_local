@@ -1,0 +1,22 @@
+FROM node:20-alpine AS base
+WORKDIR /repo
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+# Install with workspace context
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
+COPY tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/telegram-bot ./apps/telegram-bot
+RUN pnpm install --frozen-lockfile=false --prod=false
+
+# Build the bot
+WORKDIR /repo/apps/telegram-bot
+RUN pnpm build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=base /repo /repo
+WORKDIR /repo/apps/telegram-bot
+ENV NODE_ENV=production
+EXPOSE 8080
+CMD ["pnpm", "start"]
