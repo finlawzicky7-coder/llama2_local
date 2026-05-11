@@ -13,7 +13,7 @@ selenium
 mtranslate
 pygame
 edge-tts
-pyQt5
+pyQt6
 webdriver-manager
 imaplib2
 secure-smtplib
