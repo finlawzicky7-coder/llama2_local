@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClariCare — Medicare Advantage Navigation · Investor Pitch</title>
+<style>
+  :root{
+    --navy:#0B2A4A; --blue:#1B6EC2; --teal:#14A38B; --amber:#F29F05;
+    --ink:#1A1A1A; --slate:#5B6B7B; --light:#F4F7FA; --rowalt:#EAF1F8; --white:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:"Segoe UI",Calibri,Arial,sans-serif;background:#0a1622;color:var(--ink)}
+  #deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;
+         padding:4.2vh 4.5vw;background:var(--white);overflow:hidden}
+  .slide.active{display:flex;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .kicker{color:var(--teal);font-weight:700;letter-spacing:.08em;font-size:1.5vh;text-transform:uppercase}
+  h1{color:var(--navy);font-size:3.4vh;margin:.4vh 0 2vh}
+  .accentbar{position:absolute;left:0;top:0;bottom:0;width:.5vw;background:var(--blue)}
+  .cards{display:flex;gap:1.6vw;flex:1}
+  .card{flex:1;background:var(--light);border-top:.8vh solid var(--blue);border-radius:6px;
+        padding:2.4vh 1.6vw;display:flex;flex-direction:column}
+  .card.teal{border-color:var(--teal)} .card.amber{border-color:var(--amber)} .card.navy{border-color:var(--navy)}
+  .card h3{color:var(--navy);font-size:2.2vh;margin-bottom:1.2vh}
+  .card ul{list-style:none} .card li{font-size:1.7vh;line-height:1.5;margin-bottom:.9vh;color:var(--ink);padding-left:1.1em;position:relative}
+  .card li::before{content:"›";color:var(--teal);position:absolute;left:0;font-weight:700}
+  .pull{margin-top:2vh;color:var(--navy);font-style:italic;font-weight:700;font-size:2vh}
+  table{border-collapse:collapse;width:100%;margin-top:1.5vh;font-size:1.55vh}
+  th{background:var(--navy);color:#fff;padding:1vh .8vw;text-align:left;font-size:1.45vh}
+  td{padding:.9vh .8vw;border-bottom:1px solid #dde6ef}
+  tr:nth-child(even) td{background:var(--rowalt)}
+  .check{color:var(--teal);font-weight:700;text-align:center}
+  .dash{color:var(--slate);text-align:center}
+  /* title + ask slides */
+  .full{background:var(--navy);color:#fff;justify-content:center}
+  .full .stripe{position:absolute;left:0;right:0;height:1.2vh;background:var(--amber)}
+  .full h1{color:#fff;font-size:7vh;margin:0}
+  .full .tag{color:var(--amber);font-size:3vh;font-weight:700;margin:1vh 0 2.5vh}
+  .full p{font-size:2.4vh;line-height:1.4}
+  .full .meta{margin-top:4vh;color:#C9D8E8;font-size:1.8vh}
+  .flow{display:flex;align-items:center;gap:.6vw;margin-top:3vh;flex-wrap:wrap}
+  .step{background:var(--blue);color:#fff;border-radius:6px;padding:1.6vh 1vw;font-size:1.6vh;
+        font-weight:700;text-align:center;flex:1;min-width:9vw}
+  .step.guard{background:var(--amber)}
+  .arrow{color:var(--slate);font-size:2.4vh;font-weight:700}
+  .band{background:var(--navy);color:#fff;border-radius:6px;display:flex;margin-top:2.2vh}
+  .band .m{flex:1;text-align:center;padding:2vh 0}
+  .band .big{color:var(--amber);font-size:2.6vh;font-weight:700}
+  .band .small{font-size:1.5vh;color:#C9D8E8}
+  .demo{display:flex;gap:1.6vw;flex:1}
+  .chat{flex:1.4;background:var(--navy);color:#fff;border-radius:6px;padding:3vh 2vw}
+  .chat .q{color:var(--amber);font-size:2.4vh;font-weight:700;margin-bottom:1.5vh}
+  .chat .a{font-size:2vh;line-height:1.5;margin-bottom:1.5vh}
+  .chat .src{color:var(--teal);font-style:italic;font-size:1.6vh;margin-bottom:2vh}
+  .chat .pt{font-size:1.7vh;margin-bottom:.8vh}
+  .grid2{display:flex;gap:1.6vw;flex:1}
+  .circles{position:relative;flex:1;display:flex;align-items:center;justify-content:center}
+  .ring{position:absolute;border-radius:50%;display:flex;align-items:flex-start;justify-content:center;
+        padding-top:1vh;font-weight:700;color:var(--navy);font-size:1.5vh}
+  .r1{width:34vh;height:34vh;background:#D6E6F5}
+  .r2{width:24vh;height:24vh;background:#9FC4E8}
+  .r3{width:14vh;height:14vh;background:var(--blue);color:#fff}
+  .footer{position:absolute;left:4.5vw;bottom:1.6vh;color:var(--slate);font-size:1.3vh}
+  .pageno{position:absolute;right:4.5vw;bottom:1.6vh;color:var(--slate);font-size:1.3vh}
+  .timeline .row{display:flex;align-items:center;background:var(--light);border-left:.6vw solid var(--blue);
+        border-radius:4px;padding:1.3vh 1.2vw;margin-bottom:1.1vh}
+  .timeline .row.amber{border-color:var(--amber)} .timeline .row.teal{border-color:var(--teal)} .timeline .row.navy{border-color:var(--navy)}
+  .timeline .ph{color:var(--navy);font-weight:700;font-size:1.8vh;min-width:16vw}
+  .timeline .when{color:var(--slate);font-style:italic;font-size:1.4vh}
+  .timeline .body{font-size:1.55vh;color:var(--ink);flex:1;padding-left:1vw}
+  #nav{position:fixed;bottom:1.2vh;left:50%;transform:translateX(-50%);z-index:10;
+       background:rgba(11,42,74,.85);border-radius:30px;padding:.6vh 1.2vw;display:flex;gap:1vw;align-items:center}
+  #nav button{background:none;border:none;color:#fff;font-size:2vh;cursor:pointer;padding:0 .4vw}
+  #nav span{color:#C9D8E8;font-size:1.5vh;min-width:5vw;text-align:center}
+  .hint{position:fixed;top:1.2vh;right:1.2vw;color:#7f93a8;font-size:1.3vh;z-index:10}
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1 TITLE -->
+  <section class="slide active full">
+    <div class="stripe" style="top:62%"></div>
+    <h1>ClariCare</h1>
+    <div class="tag">Medicare, in plain language — on demand.</div>
+    <p>Conversational AI that helps beneficiaries understand, compare,<br>and enroll in Medicare Advantage plans.</p>
+    <div class="meta">Seed / Series A · Health-Tech Investor Pitch · Confidential</div>
+  </section>
+
+  <!-- 2 PROBLEM -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">The Problem</div>
+    <h1>A comprehension crisis is costing plans billions</h1>
+    <div class="cards">
+      <div class="card"><h3>Documents nobody can read</h3><ul>
+        <li>Plan documents (EOC, SB, ANOC) are written at an ~11th–13th-grade level.</li>
+        <li>The average U.S. adult reads at ~8th grade; most seniors prefer ≤6th.</li>
+        <li>Beneficiaries can't tell what's actually covered.</li></ul></div>
+      <div class="card teal"><h3>Choice overload</h3><ul>
+        <li>A typical county offers 40+ Medicare Advantage plans.</li>
+        <li>Overwhelmed beneficiaries pick on price alone — leaving benefits on the table.</li>
+        <li>Poor fit drives rapid disenrollment and churn.</li></ul></div>
+      <div class="card amber"><h3>Expensive confusion</h3><ul>
+        <li>Millions of repetitive "is this covered / how do I" calls a year.</li>
+        <li>Live agent contacts are the costliest service channel.</li>
+        <li>Confusion erodes CAHPS scores that drive Star bonuses.</li></ul></div>
+    </div>
+    <div class="pull">Every avoidable call, every wrong-plan pick, every disenrollment is margin destruction for the plan.</div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">2</div>
+  </section>
+
+  <!-- 3 WHY NOW -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Why Now</div>
+    <h1>Policy, market, and technology are converging</h1>
+    <div class="cards">
+      <div class="card"><h3>Policy tailwind</h3><ul>
+        <li>CMS RFIs &amp; rules on digital tools &amp; interoperability</li>
+        <li>Medicare Advantage marketing integrity</li>
+        <li>Health equity &amp; language access</li>
+        <li>Reducing administrative burden</li>
+        <li><b>We build toward where the regulator is pointing.</b></li></ul></div>
+      <div class="card teal"><h3>Market tailwind</h3><ul>
+        <li>MA now covers ~half of all Medicare beneficiaries.</li>
+        <li>~10,000 Americans age into Medicare every day.</li>
+        <li>Plans compete fiercely on experience &amp; retention.</li></ul></div>
+      <div class="card amber"><h3>Technology tailwind</h3><ul>
+        <li>LLMs crossed the reliability + cost threshold for safe use.</li>
+        <li>Plain-language translation &amp; real-time voice are production-ready.</li>
+        <li>Retrieval + citations make answers auditable.</li></ul></div>
+    </div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">3</div>
+  </section>
+
+  <!-- 4 SOLUTION -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">The Solution</div>
+    <h1>Two capabilities, grounded in the member's real plan</h1>
+    <div class="grid2">
+      <div class="card"><h3>1 · Plain-language translation</h3><ul>
+        <li>Connect any plan document — EOC, Summary of Benefits, ANOC, formulary.</li>
+        <li>Rendered at a ≤6th-grade reading level, in the beneficiary's language.</li>
+        <li>Turns 12th-grade legalese into a clear, scannable answer.</li>
+        <li>Drives Section 508 / accessibility compliance automatically.</li></ul></div>
+      <div class="card teal"><h3>2 · Real-time conversational AI</h3><ul>
+        <li>Ask anything by text or voice — coverage, costs, networks, drugs, enrollment.</li>
+        <li>Grounded in the member's actual plan, with citations to the source.</li>
+        <li>Multilingual; serves low-vision &amp; limited-English beneficiaries.</li>
+        <li>We don't hallucinate benefits — every answer is traceable.</li></ul></div>
+    </div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">4</div>
+  </section>
+
+  <!-- 5 DEMO -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Product Demo</div>
+    <h1>Live, not a mockup</h1>
+    <div class="demo">
+      <div class="chat">
+        <div class="q">“¿Mi plan cubre mi insulina?”</div>
+        <div class="a"><b style="color:#C9D8E8">AI (voice + text, Spanish):</b><br>
+          “Sí. Su plan cubre la insulina como medicamento de Nivel 3. Paga $35 por un suministro de 30 días en farmacias de la red.”</div>
+        <div class="src">📎 Fuente: 2025 Evidence of Coverage, p. 42</div>
+        <div class="pt">▸ Compares two plans on the same drug cost</div>
+        <div class="pt">▸ One tap to reveal the source citation</div>
+        <div class="pt">▸ Hands off to a licensed agent when needed</div>
+      </div>
+      <div class="card amber" style="flex:1"><h3>What the demo proves</h3><ul>
+        <li>Answers are accurate and grounded.</li>
+        <li>Voice + multilingual works in real time.</li>
+        <li>Citations build beneficiary &amp; payer trust.</li>
+        <li>This replaces a ~12-minute live call.</li>
+        <li><i>Tip: pre-record — never rely on conference Wi-Fi.</i></li></ul></div>
+    </div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">5</div>
+  </section>
+
+  <!-- 6 HOW IT WORKS -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">How It Works</div>
+    <h1>Architecture built for accuracy and compliance</h1>
+    <div class="flow">
+      <div class="step">Document ingestion</div><div class="arrow">→</div>
+      <div class="step">Structured extraction</div><div class="arrow">→</div>
+      <div class="step">Retrieval-augmented generation (grounded)</div><div class="arrow">→</div>
+      <div class="step guard">Guardrail &amp; compliance layer</div><div class="arrow">→</div>
+      <div class="step">Member answer + citation</div>
+    </div>
+    <div class="card teal" style="margin-top:3vh;flex:0 0 auto"><h3>Built-in guardrails (the compliance layer)</h3><ul>
+      <li>Grounding + citations: every answer traces to the plan's official documents.</li>
+      <li>Scope limiter: navigation &amp; education, never medical or insurance advice.</li>
+      <li>No-steering enforcement: neutral plan comparisons (CMS marketing-rule safe).</li>
+      <li>PHI minimization + immutable audit logs · Human-in-the-loop escalation.</li></ul></div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">6</div>
+  </section>
+
+  <!-- 7 MARKET -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Market Size</div>
+    <h1>Large, growing, and reachable through payers &amp; brokers</h1>
+    <div class="grid2">
+      <div class="circles">
+        <div class="ring r1">TAM · ~68M Medicare beneficiaries</div>
+        <div class="ring r2">SAM · 33M+ MA members</div>
+        <div class="ring r3">SOM · plans + FMOs</div>
+      </div>
+      <div class="card teal" style="flex:1"><h3>How we capture it</h3><ul>
+        <li><b>TAM</b> — all Medicare beneficiaries plus the payers, brokers &amp; FMOs that serve them.</li>
+        <li><b>SAM</b> — MA members and the plans / agencies that must educate &amp; retain them.</li>
+        <li><b>SOM (Yr 1–3)</b> — beachhead of 3–5 regional MA plans and a broker / FMO network.</li>
+        <li><i>Replace every figure with a current, sourced number (CMS / KFF) before pitching.</i></li></ul></div>
+    </div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">7</div>
+  </section>
+
+  <!-- 8 BUSINESS MODEL -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Business Model</div>
+    <h1>Multi-sided, recurring revenue</h1>
+    <div class="cards">
+      <div class="card"><h3>B2B2C SaaS to payers</h3><ul>
+        <li>Per-member-per-month (PMPM) for the navigation + call-deflection layer.</li>
+        <li>Sold to Medicare Advantage plans &amp; payers.</li></ul></div>
+      <div class="card teal"><h3>Broker / FMO seats</h3><ul>
+        <li>Per-seat or per-enrollment agent-assist during AEP / OEP.</li>
+        <li>Speeds quoting and reduces errors.</li></ul></div>
+      <div class="card amber"><h3>Translation API</h3><ul>
+        <li>Usage-based plain-language conversion of plan documents.</li>
+        <li>Drives 508 / accessibility compliance.</li></ul></div>
+    </div>
+    <div class="pull">Why plans buy: deflection + retention + Star-Rating (CAHPS) upside dwarfs the PMPM price.</div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">8</div>
+  </section>
+
+  <!-- 9 ROI -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">ROI / Unit Economics</div>
+    <h1>The buyer's payback math <span style="font-size:2vh;color:var(--slate)">(illustrative — verify)</span></h1>
+    <table>
+      <tr><th>Value lever</th><th>Mechanism</th><th>Illustrative benchmark</th></tr>
+      <tr><td>Call deflection</td><td>Contain repetitive "is it covered / how do I" contacts</td><td>$5–$12+ per live call → pennies–&lt;$1 self-service</td></tr>
+      <tr><td>Lower handle time</td><td>AI surfaces grounded answers for agent-assist</td><td>Shorter AHT on contained + escalated calls</td></tr>
+      <tr><td>Retention</td><td>Better plan fit reduces rapid disenrollment</td><td>Hundreds of $ saved per retained member-year</td></tr>
+      <tr><td>Accessibility ops</td><td>Automated plain-language + translation</td><td>Manual 508 remediation cost avoided</td></tr>
+      <tr><td>Star Ratings</td><td>Comprehension lifts CAHPS member experience</td><td>Quality-bonus revenue upside (MA-specific)</td></tr>
+    </table>
+    <div class="card teal" style="margin-top:2vh;flex:0 0 auto"><h3>Payback formula (CFO-editable)</h3><ul>
+      <li>Annual savings = eligible contacts/member/yr × members × deflection rate × (cost/call − cost/AI), plus retention + accessibility + Star upside.</li>
+      <li>Even at a conservative 20–30% containment on the navigational call segment, deflection alone pays back the PMPM in under [X] months.</li></ul></div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">9</div>
+  </section>
+
+  <!-- 10 COMPLIANCE -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Regulatory &amp; Compliance</div>
+    <h1>We turn regulatory risk into a moat</h1>
+    <div class="timeline">
+      <div class="row amber"><div class="ph">Phase 0 · Foundation <span class="when">(now)</span></div><div class="body">HIPAA program + BAAs, encryption, PHI minimization, audit logs, guardrails (no advice / no steering), CMS marketing-rule copy review.</div></div>
+      <div class="row"><div class="ph">Phase 1 · Enterprise-ready <span class="when">(before 1st paid contract)</span></div><div class="body">SOC 2 Type I, WCAG 2.x AA + VPAT, penetration test, incident-response runbook.</div></div>
+      <div class="row teal"><div class="ph">Phase 2 · Scale <span class="when">(Series A scale-up)</span></div><div class="body">SOC 2 Type II, AI governance + bias/accuracy monitoring, DPIAs, state-by-state activity review.</div></div>
+      <div class="row navy"><div class="ph">Phase 3 · Moat <span class="when">(Series A → B)</span></div><div class="body">Continuous compliance automation, third-party audits, CMS-aligned transparency reporting.</div></div>
+    </div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">10</div>
+  </section>
+
+  <!-- 11 TRACTION -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Traction &amp; Market Readiness</div>
+    <h1>We can sell into MA enrollment today</h1>
+    <div class="cards" style="flex:0 0 auto">
+      <div class="card"><h3>Regulatory readiness</h3><ul>
+        <li>HIPAA in place; SOC 2 underway.</li>
+        <li>CMS marketing-rule review complete.</li>
+        <li>= legal to deploy in MA channels.</li></ul></div>
+      <div class="card teal"><h3>Quality readiness</h3><ul>
+        <li>Accuracy benchmarked vs. human experts.</li>
+        <li>Readability: grade 12.4 → 5.8 on real docs.</li>
+        <li>Safety / guardrail evals passing.</li></ul></div>
+      <div class="card amber"><h3>Commercial readiness</h3><ul>
+        <li>Signed pilots &amp; design partners.</li>
+        <li>LOIs from plans / FMOs.</li>
+        <li>Named logos (where permitted).</li></ul></div>
+    </div>
+    <div class="band">
+      <div class="m"><div class="big">[__]%</div><div class="small">Accuracy vs. human gold set</div></div>
+      <div class="m"><div class="big">[__]%</div><div class="small">Deflection of eligible contacts</div></div>
+      <div class="m"><div class="big">[__]</div><div class="small">Languages supported</div></div>
+      <div class="m"><div class="big">−[__]</div><div class="small">Reading-grade-level drop</div></div>
+    </div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">11</div>
+  </section>
+
+  <!-- 12 COMPETITION -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Competitive Landscape</div>
+    <h1>Grounded + compliant = defensible</h1>
+    <table>
+      <tr><th>&nbsp;</th><th>Grounded &amp; cited</th><th>Real-time voice</th><th>Multilingual ≤6th grade</th><th>Compliance-first</th><th>Plan data integration</th></tr>
+      <tr><td><b>ClariCare</b></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+      <tr><td>Plan-finder / comparison sites</td><td>partial</td><td class="dash">—</td><td>partial</td><td>partial</td><td>partial</td></tr>
+      <tr><td>Call-center BPOs</td><td class="dash">—</td><td class="check">✓</td><td>partial</td><td class="check">✓</td><td class="dash">—</td></tr>
+      <tr><td>Generic LLM chatbots</td><td class="dash">—</td><td>partial</td><td class="check">✓</td><td class="dash">—</td><td class="dash">—</td></tr>
+      <tr><td>Broker software</td><td>partial</td><td class="dash">—</td><td class="dash">—</td><td>partial</td><td class="check">✓</td></tr>
+    </table>
+    <div class="pull">Defensibility = proprietary plan-document ingestion + compliance posture + multilingual voice + payer integrations.</div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">12</div>
+  </section>
+
+  <!-- 13 TEAM -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Team</div>
+    <h1>The trifecta a regulated market demands</h1>
+    <div class="cards" style="flex:0 0 auto">
+      <div class="card"><h3>Healthcare / payer domain</h3><ul><li>Knows MA operations, Star Ratings, and how plans buy.</li></ul></div>
+      <div class="card teal"><h3>AI / ML engineering</h3><ul><li>Builds grounded, safe, multilingual conversational systems at scale.</li></ul></div>
+      <div class="card amber"><h3>Regulatory / compliance</h3><ul><li>HIPAA, CMS marketing rules, SOC 2 — credibility with risk-averse payers.</li></ul></div>
+    </div>
+    <div class="card navy" style="margin-top:2.2vh;flex:0 0 auto"><h3>Advisors</h3><ul>
+      <li>CMS / Medicare Advantage operating leaders, a health-equity expert, and a healthcare regulatory counsel — replace with your real names &amp; logos.</li></ul></div>
+    <div class="footer">ClariCare · Medicare, in plain language</div><div class="pageno">13</div>
+  </section>
+
+  <!-- 14 ASK -->
+  <section class="slide full">
+    <div class="stripe" style="top:32%"></div>
+    <h1 style="font-size:5.5vh">The Ask</h1>
+    <div class="tag" style="margin-top:1vh">Raising $[X]M to make Medicare navigation conversational, readable, and compliant.</div>
+    <div class="band" style="background:transparent;gap:1vw">
+      <div class="m" style="background:#143A5E;border-radius:6px"><div class="big">Design partners</div><div class="small">→ paying plans</div></div>
+      <div class="m" style="background:#143A5E;border-radius:6px"><div class="big">SOC 2 Type II</div><div class="small">+ AI governance</div></div>
+      <div class="m" style="background:#143A5E;border-radius:6px"><div class="big">[N] members</div><div class="small">served</div></div>
+      <div class="m" style="background:#143A5E;border-radius:6px"><div class="big">$[X] ARR</div><div class="small">in 18 months</div></div>
+    </div>
+    <p style="margin-top:3vh"><b style="color:var(--amber)">Use of funds:</b> Engineering &amp; product · Compliance &amp; security · Go-to-market (AEP/OEP)</p>
+    <p style="margin-top:1.5vh;color:#C9D8E8;font-style:italic;font-size:2vh">Every dollar tied to a de-risking milestone the next round will underwrite.</p>
+    <div class="meta">Contact: finlawzicky7@gmail.com</div>
+  </section>
+
+</div>
+
+<div class="hint">← → / Space to navigate · F fullscreen</div>
+<div id="nav">
+  <button id="prev" aria-label="Previous">‹</button>
+  <span id="counter">1 / 14</span>
+  <button id="next" aria-label="Next">›</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  const counter=document.getElementById('counter');
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    counter.textContent=(i+1)+' / '+slides.length;
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();show(i+1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1);}
+    else if(e.key==='Home'){show(0);} else if(e.key==='End'){show(slides.length-1);}
+    else if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen();}
+    }
+  });
+  show(0);
+</script>
+</body>
+</html>
