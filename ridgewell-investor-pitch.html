@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ridgewell Insurance Agency LLC — Renewal &amp; Retention Intelligence · Investor Pitch</title>
+<style>
+  :root{
+    --navy:#0E2A3B; --blue:#1B6EC2; --green:#1E7A4B; --teal:#14A38B; --amber:#F29F05;
+    --ink:#1A1A1A; --slate:#5B6B7B; --light:#F4F7FA; --rowalt:#EAF1F8; --white:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:"Segoe UI",Calibri,Arial,sans-serif;background:#0a1622;color:var(--ink)}
+  #deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;
+         padding:4.2vh 4.5vw;background:var(--white);overflow:hidden}
+  .slide.active{display:flex;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .kicker{color:var(--green);font-weight:700;letter-spacing:.08em;font-size:1.5vh;text-transform:uppercase}
+  h1{color:var(--navy);font-size:3.2vh;margin:.4vh 0 2vh}
+  .accentbar{position:absolute;left:0;top:0;bottom:0;width:.5vw;background:var(--blue)}
+  .cards{display:flex;gap:1.6vw;flex:1}
+  .card{flex:1;background:var(--light);border-top:.8vh solid var(--blue);border-radius:6px;
+        padding:2.4vh 1.6vw;display:flex;flex-direction:column}
+  .card.green{border-color:var(--green)} .card.teal{border-color:var(--teal)}
+  .card.amber{border-color:var(--amber)} .card.navy{border-color:var(--navy)}
+  .card h3{color:var(--navy);font-size:2.1vh;margin-bottom:1.2vh}
+  .card ul{list-style:none} .card li{font-size:1.7vh;line-height:1.5;margin-bottom:.9vh;color:var(--ink);padding-left:1.1em;position:relative}
+  .card li::before{content:"›";color:var(--green);position:absolute;left:0;font-weight:700}
+  .pull{margin-top:2vh;color:var(--navy);font-style:italic;font-weight:700;font-size:1.95vh}
+  table{border-collapse:collapse;width:100%;margin-top:1.5vh;font-size:1.55vh}
+  th{background:var(--navy);color:#fff;padding:1vh .8vw;text-align:left;font-size:1.45vh}
+  td{padding:.9vh .8vw;border-bottom:1px solid #dde6ef}
+  tr:nth-child(even) td{background:var(--rowalt)}
+  .check{color:var(--green);font-weight:700;text-align:center}
+  .dash{color:var(--slate);text-align:center}
+  .full{background:var(--navy);color:#fff;justify-content:center}
+  .full .stripe{position:absolute;left:0;right:0;height:1.2vh;background:var(--amber)}
+  .full h1{color:#fff;font-size:6vh;margin:0}
+  .full .tag{color:var(--amber);font-size:2.8vh;font-weight:700;margin:1vh 0 2.5vh}
+  .full p{font-size:2.3vh;line-height:1.4}
+  .full .meta{margin-top:4vh;color:#C9D8E8;font-size:1.8vh}
+  .titlebar{border-left:.6vw solid var(--green);padding-left:1.2vw}
+  .flow{display:flex;align-items:center;gap:.5vw;margin-top:3vh;flex-wrap:wrap}
+  .step{background:var(--blue);color:#fff;border-radius:6px;padding:1.6vh .9vw;font-size:1.55vh;
+        font-weight:700;text-align:center;flex:1;min-width:9vw}
+  .step.score{background:var(--green)} .step.guard{background:var(--amber)}
+  .arrow{color:var(--slate);font-size:2.2vh;font-weight:700}
+  .band{background:var(--navy);color:#fff;border-radius:6px;display:flex;margin-top:2.2vh}
+  .band .m{flex:1;text-align:center;padding:2vh 0}
+  .band .big{color:var(--amber);font-size:2.4vh;font-weight:700}
+  .band .small{font-size:1.45vh;color:#C9D8E8}
+  .demo{display:flex;gap:1.6vw;flex:1}
+  .chat{flex:1.4;background:var(--navy);color:#fff;border-radius:6px;padding:3vh 2vw}
+  .chat .q{color:var(--amber);font-size:2vh;font-weight:700;margin-bottom:1vh}
+  .chat .a{font-size:1.9vh;line-height:1.5;margin-bottom:1.2vh}
+  .chat .src{color:var(--teal);font-style:italic;font-size:1.55vh;margin-bottom:1.4vh}
+  .chat .win{color:var(--amber);font-weight:700;font-size:1.8vh}
+  .grid2{display:flex;gap:1.6vw;flex:1}
+  .circles{position:relative;flex:1;display:flex;align-items:center;justify-content:center}
+  .ring{position:absolute;border-radius:50%;display:flex;align-items:flex-start;justify-content:center;
+        padding-top:1vh;font-weight:700;color:var(--navy);font-size:1.4vh;text-align:center}
+  .r1{width:34vh;height:34vh;background:#D6E6F5}
+  .r2{width:24vh;height:24vh;background:#9FC4E8}
+  .r3{width:14vh;height:14vh;background:var(--green);color:#fff}
+  .footer{position:absolute;left:4.5vw;bottom:1.6vh;color:var(--slate);font-size:1.3vh}
+  .pageno{position:absolute;right:4.5vw;bottom:1.6vh;color:var(--slate);font-size:1.3vh}
+  .timeline .row{display:flex;align-items:center;background:var(--light);border-left:.6vw solid var(--blue);
+        border-radius:4px;padding:1.3vh 1.2vw;margin-bottom:1.1vh}
+  .timeline .row.amber{border-color:var(--amber)} .timeline .row.teal{border-color:var(--teal)} .timeline .row.green{border-color:var(--green)}
+  .timeline .ph{color:var(--navy);font-weight:700;font-size:1.8vh;min-width:17vw}
+  .timeline .when{color:var(--slate);font-style:italic;font-size:1.4vh}
+  .timeline .body{font-size:1.55vh;color:var(--ink);flex:1;padding-left:1vw}
+  #nav{position:fixed;bottom:1.2vh;left:50%;transform:translateX(-50%);z-index:10;
+       background:rgba(14,42,59,.88);border-radius:30px;padding:.6vh 1.2vw;display:flex;gap:1vw;align-items:center}
+  #nav button{background:none;border:none;color:#fff;font-size:2vh;cursor:pointer;padding:0 .4vw}
+  #nav span{color:#C9D8E8;font-size:1.5vh;min-width:5vw;text-align:center}
+  .hint{position:fixed;top:1.2vh;right:1.2vw;color:#7f93a8;font-size:1.3vh;z-index:10}
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1 TITLE -->
+  <section class="slide active full">
+    <div class="stripe" style="top:62%"></div>
+    <div class="titlebar">
+      <h1>Ridgewell Insurance Agency</h1>
+      <div class="tag">Renewal &amp; Retention Intelligence for Medicare.</div>
+      <p>We sell Medicare — and we keep members enrolled, using AI-driven<br>retention intelligence that compounds renewal commissions.</p>
+    </div>
+    <div class="meta">Seed / Series A · Health-Tech Investor Pitch · Confidential</div>
+  </section>
+
+  <!-- 2 PROBLEM -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">The Problem</div>
+    <h1>In Medicare, the sale is just the beginning — retention is the business</h1>
+    <div class="cards">
+      <div class="card"><h3>Churn destroys commission value</h3><ul>
+        <li>Rapid disenrollment claws back the agency's commission entirely.</li>
+        <li>Every member who switches at AEP resets lifetime value to zero.</li>
+        <li>Renewal commissions only accrue while the member stays.</li></ul></div>
+      <div class="card teal"><h3>Renewal season is chaos</h3><ul>
+        <li>Each AEP/OEP, ANOC changes, plan exits, and benefit shifts confuse members.</li>
+        <li>Confusion — not dissatisfaction — drives most plan switching.</li>
+        <li>Members rarely understand what actually changed in their plan.</li></ul></div>
+      <div class="card amber"><h3>Agencies fly blind</h3><ul>
+        <li>Most agencies have no early-warning system for at-risk members.</li>
+        <li>Outreach is reactive, manual, and badly timed.</li>
+        <li>Retention is left to luck instead of intelligence.</li></ul></div>
+    </div>
+    <div class="pull">A few points of persistency is the difference between a shrinking book and a compounding one.</div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">2</div>
+  </section>
+
+  <!-- 3 WHY NOW -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Why Now</div>
+    <h1>Policy, market, and technology favor a retention-led agency</h1>
+    <div class="cards">
+      <div class="card"><h3>Policy tailwind</h3><ul>
+        <li>CMS is tightening MA marketing rules and scrutinizing rapid disenrollment.</li>
+        <li>Value is shifting from churn-and-burn selling to durable retention.</li>
+        <li>Health-equity &amp; language-access priorities reward clear communication.</li></ul></div>
+      <div class="card teal"><h3>Market tailwind</h3><ul>
+        <li>MA covers ~half of all Medicare beneficiaries and keeps growing.</li>
+        <li>~10,000 Americans age into Medicare every day.</li>
+        <li>33M+ MA members face a renewal decision every single year.</li></ul></div>
+      <div class="card amber"><h3>Technology tailwind</h3><ul>
+        <li>AI can now predict at-risk members from plan &amp; behavior data.</li>
+        <li>Plain-language translation + real-time voice are production-ready.</li>
+        <li>Grounded, cited answers make member guidance safe and auditable.</li></ul></div>
+    </div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">3</div>
+  </section>
+
+  <!-- 4 SOLUTION -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">The Solution</div>
+    <h1>Renewal &amp; Retention Intelligence — our core engine</h1>
+    <div class="grid2">
+      <div class="card green"><h3>1 · Retention intelligence</h3><ul>
+        <li>Predictive at-risk scoring across the entire book of business.</li>
+        <li>Flags members likely to disenroll or switch — before AEP, not after.</li>
+        <li>Tracks each member's ANOC / plan / network / drug changes automatically.</li>
+        <li>Prioritizes and times agent outreach for maximum retention.</li></ul></div>
+      <div class="card teal"><h3>2 · Member navigation AI</h3><ul>
+        <li>Plain-language translation of plan documents at a ≤6th-grade level.</li>
+        <li>Real-time conversational AI — by text or voice, in the member's language.</li>
+        <li>Grounded in the member's actual plan, with citations to the source.</li>
+        <li>Turns renewal confusion into a confident decision to stay.</li></ul></div>
+    </div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">4</div>
+  </section>
+
+  <!-- 5 DEMO -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">How It Saves a Member</div>
+    <h1>A retention save, end to end</h1>
+    <div class="demo">
+      <div class="chat">
+        <div class="q">⚠️ At-risk flag (pre-AEP):</div>
+        <div class="a">“Mrs. Alvarez's 2025 plan is dropping her cardiologist from the network.”</div>
+        <div class="q" style="font-size:1.7vh">Agent outreach, AI-assisted (Spanish):</div>
+        <div class="a">“Su médico sale de la red en enero. Encontré 2 planes que lo mantienen por un costo similar. ¿Quiere que la inscriba?”</div>
+        <div class="src">📎 Fuente: 2025 ANOC + directorio de proveedores</div>
+        <div class="win">✓ Member retained on a suitable plan — renewal commission preserved.</div>
+      </div>
+      <div class="card green" style="flex:1"><h3>Why this wins</h3><ul>
+        <li>Caught the risk before the member silently lapsed.</li>
+        <li>Plain-language, multilingual explanation built trust.</li>
+        <li>Agent kept the household — and the residual commission.</li>
+        <li>Every step logged for CMS marketing-rule compliance.</li>
+        <li><i>Reactive agencies never see this member until they're gone.</i></li></ul></div>
+    </div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">5</div>
+  </section>
+
+  <!-- 6 HOW IT WORKS -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">How It Works</div>
+    <h1>From book data to retained members</h1>
+    <div class="flow">
+      <div class="step">Book + plan / ANOC data</div><div class="arrow">→</div>
+      <div class="step score">At-risk scoring model</div><div class="arrow">→</div>
+      <div class="step">Plain-language + conversational AI</div><div class="arrow">→</div>
+      <div class="step guard">Guided outreach + compliance layer</div><div class="arrow">→</div>
+      <div class="step">Retained &amp; renewed member</div>
+    </div>
+    <div class="card teal" style="margin-top:3vh;flex:0 0 auto"><h3>Built-in guardrails (the compliance layer)</h3><ul>
+      <li>Grounding + citations: every member answer traces to official plan documents.</li>
+      <li>Scope limiter: licensed agents advise; AI educates and navigates.</li>
+      <li>CMS marketing-rule safe: neutral, accurate, documented.</li>
+      <li>PHI minimization + immutable audit logs · Human-in-the-loop on every enrollment.</li></ul></div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">6</div>
+  </section>
+
+  <!-- 7 MARKET -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Market Size</div>
+    <h1>A growing book — and a platform other agencies need</h1>
+    <div class="grid2">
+      <div class="circles">
+        <div class="ring r1">TAM · ~68M beneficiaries; multibillion commission pool</div>
+        <div class="ring r2">SAM · 33M+ MA members renewing yearly</div>
+        <div class="ring r3">SOM · our book + licensed agencies</div>
+      </div>
+      <div class="card teal" style="flex:1"><h3>Two ways to grow</h3><ul>
+        <li><b>1 · Grow our own book</b> — every retained member compounds renewal commissions.</li>
+        <li><b>2 · License the intelligence</b> — sell Renewal &amp; Retention Intelligence to other agencies &amp; FMOs facing the same churn.</li>
+        <li><i>Replace every figure with a current, sourced number (CMS / KFF / your book) before pitching.</i></li></ul></div>
+    </div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">7</div>
+  </section>
+
+  <!-- 8 BUSINESS MODEL -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Business Model</div>
+    <h1>Recurring commissions, compounded by retention</h1>
+    <div class="cards">
+      <div class="card"><h3>Sell Medicare</h3><ul>
+        <li>CMS-regulated initial + renewal commissions on MA, Med Supp &amp; Part D.</li>
+        <li>Renewal commissions recur every year a member stays.</li></ul></div>
+      <div class="card green"><h3>Retain members <span style="font-size:1.4vh;color:var(--green)">(the moat)</span></h3><ul>
+        <li>Retention intelligence lifts persistency.</li>
+        <li>Higher persistency compounds residual commissions and book value.</li></ul></div>
+      <div class="card amber"><h3>License the intelligence</h3><ul>
+        <li>Per-life or per-seat SaaS to partner agencies &amp; FMOs.</li>
+        <li>Recurring revenue beyond our own book.</li></ul></div>
+    </div>
+    <div class="pull">An MA member's value is an annuity — retention turns each sale into years of recurring commission.</div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">8</div>
+  </section>
+
+  <!-- 9 ROI -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Unit Economics</div>
+    <h1>Persistency is the highest-ROI lever in the agency</h1>
+    <table>
+      <tr><th>Value lever</th><th>Mechanism</th><th>Illustrative impact</th></tr>
+      <tr><td>Persistency lift</td><td>Keep members past chargeback window &amp; through AEP</td><td>Each +1 pt persistency = residual commissions retained</td></tr>
+      <tr><td>Chargeback avoidance</td><td>Catch at-risk members before rapid disenrollment</td><td>Avoid full commission clawback per lapsed member</td></tr>
+      <tr><td>Agent productivity</td><td>Prioritized at-risk lists + AI member navigation</td><td>More renewals per agent; less manual triage at AEP</td></tr>
+      <tr><td>Cross-sell</td><td>Trusted touchpoints surface Med Supp / PDP / ancillary</td><td>Added commission per retained household</td></tr>
+      <tr><td>Licensing</td><td>Sell the intelligence to partner agencies</td><td>Recurring SaaS revenue beyond our own book</td></tr>
+    </table>
+    <div class="card teal" style="margin-top:2vh;flex:0 0 auto"><h3>Lifetime-value math (CFO-editable)</h3><ul>
+      <li>Book LTV = members × (initial + Σ renewal commissions over retained years) × persistency. Retention multiplies every term that matters.</li>
+      <li>Retaining a member 1–2 extra years compounds residual commissions far beyond acquisition cost — lifting persistency a few points is the single biggest value driver.</li></ul></div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">9</div>
+  </section>
+
+  <!-- 10 COMPLIANCE -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Regulatory &amp; Compliance</div>
+    <h1>A licensed agency that treats compliance as a moat</h1>
+    <div class="timeline">
+      <div class="row amber"><div class="ph">Licensing &amp; foundation <span class="when">(now)</span></div><div class="body">State DOI agency/producer licenses, CMS marketing-rule compliant communications, HIPAA program + BAAs, encryption, audit logging.</div></div>
+      <div class="row"><div class="ph">Enterprise-ready <span class="when">(before licensing to partners)</span></div><div class="body">SOC 2 Type I, WCAG 2.x AA + VPAT, penetration test, AI guardrails (educate not advise), incident-response runbook.</div></div>
+      <div class="row teal"><div class="ph">Scale <span class="when">(Series A scale-up)</span></div><div class="body">SOC 2 Type II, AI governance + bias/accuracy monitoring, DPIAs, multi-state licensing expansion.</div></div>
+      <div class="row green"><div class="ph">Moat <span class="when">(Series A → B)</span></div><div class="body">Continuous compliance automation, third-party audits, CMS-aligned transparency reporting.</div></div>
+    </div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">10</div>
+  </section>
+
+  <!-- 11 TRACTION -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Traction &amp; Market Readiness</div>
+    <h1>A real book, an intelligence edge, ready to scale</h1>
+    <div class="cards" style="flex:0 0 auto">
+      <div class="card"><h3>Agency readiness</h3><ul>
+        <li>Licensed, producing Medicare agency with an active book.</li>
+        <li>Carrier appointments in place.</li>
+        <li>Renewal commissions already recurring.</li></ul></div>
+      <div class="card green"><h3>Intelligence readiness</h3><ul>
+        <li>At-risk scoring live on the book.</li>
+        <li>Plain-language readability: grade 12.4 → 5.8.</li>
+        <li>Persistency lift measured vs. baseline.</li></ul></div>
+      <div class="card amber"><h3>Expansion readiness</h3><ul>
+        <li>Partner-agency demand to license the platform.</li>
+        <li>LOIs / pilots with other agencies &amp; FMOs.</li>
+        <li>Multilingual member navigation deployed.</li></ul></div>
+    </div>
+    <div class="band">
+      <div class="m"><div class="big">[__]%</div><div class="small">Persistency vs. industry baseline</div></div>
+      <div class="m"><div class="big">[__]</div><div class="small">Book size (members / premium)</div></div>
+      <div class="m"><div class="big">+[__] pts</div><div class="small">Retention lift from intelligence</div></div>
+      <div class="m"><div class="big">[__]</div><div class="small">Languages supported</div></div>
+    </div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">11</div>
+  </section>
+
+  <!-- 12 COMPETITION -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Competitive Landscape</div>
+    <h1>Retention intelligence + compliance = defensible</h1>
+    <table>
+      <tr><th>&nbsp;</th><th>Predictive retention</th><th>Member navigation AI</th><th>Multilingual ≤6th grade</th><th>Licensed agency</th><th>Compliance-first</th></tr>
+      <tr><td><b>Ridgewell</b></td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+      <tr><td>Typical Medicare agencies</td><td class="dash">—</td><td class="dash">—</td><td>partial</td><td class="check">✓</td><td>partial</td></tr>
+      <tr><td>CRM / lead-gen tools</td><td>partial</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td>partial</td></tr>
+      <tr><td>FMO back-office platforms</td><td>partial</td><td class="dash">—</td><td>partial</td><td class="dash">—</td><td class="check">✓</td></tr>
+      <tr><td>Generic LLM chatbots</td><td class="dash">—</td><td>partial</td><td class="check">✓</td><td class="dash">—</td><td class="dash">—</td></tr>
+    </table>
+    <div class="pull">Defensibility = proprietary book data + retention models + multilingual navigation + a licensed, compliant agency.</div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">12</div>
+  </section>
+
+  <!-- 13 TEAM -->
+  <section class="slide">
+    <div class="accentbar"></div>
+    <div class="kicker">Team</div>
+    <h1>The trifecta a retention-led Medicare agency needs</h1>
+    <div class="cards" style="flex:0 0 auto">
+      <div class="card"><h3>Medicare agency leadership</h3><ul><li>Builds the book, holds carrier appointments, knows AEP/OEP and persistency.</li></ul></div>
+      <div class="card green"><h3>Data / AI engineering</h3><ul><li>Builds at-risk models + grounded, multilingual member navigation.</li></ul></div>
+      <div class="card amber"><h3>Regulatory / compliance</h3><ul><li>State licensing, CMS marketing rules, HIPAA, SOC 2.</li></ul></div>
+    </div>
+    <div class="card navy" style="margin-top:2.2vh;flex:0 0 auto"><h3>Advisors</h3><ul>
+      <li>Medicare distribution / FMO leaders, a data-science advisor, and healthcare regulatory counsel — replace with your real names &amp; logos.</li></ul></div>
+    <div class="footer">Ridgewell Insurance Agency LLC · Renewal &amp; Retention Intelligence</div><div class="pageno">13</div>
+  </section>
+
+  <!-- 14 ASK -->
+  <section class="slide full">
+    <div class="stripe" style="top:32%"></div>
+    <h1 style="font-size:5vh">The Ask</h1>
+    <div class="tag" style="margin-top:1vh">Raising $[X]M to grow the book and scale Renewal &amp; Retention Intelligence.</div>
+    <div class="band" style="background:transparent;gap:1vw">
+      <div class="m" style="background:#163A4E;border-radius:6px"><div class="big">Grow the book</div><div class="small">members + premium</div></div>
+      <div class="m" style="background:#163A4E;border-radius:6px"><div class="big">Lift persistency</div><div class="small">vs. industry</div></div>
+      <div class="m" style="background:#163A4E;border-radius:6px"><div class="big">Launch licensing</div><div class="small">to partner agencies</div></div>
+      <div class="m" style="background:#163A4E;border-radius:6px"><div class="big">$[X] ARR</div><div class="small">in 18 months</div></div>
+    </div>
+    <p style="margin-top:3vh"><b style="color:var(--amber)">Use of funds:</b> Agent growth &amp; marketing · Retention-intelligence engineering · Compliance &amp; licensing</p>
+    <p style="margin-top:1.5vh;color:#C9D8E8;font-style:italic;font-size:2vh">Every dollar tied to a de-risking milestone the next round will underwrite.</p>
+    <div class="meta">Ridgewell Insurance Agency LLC · finlawzicky7@gmail.com</div>
+  </section>
+
+</div>
+
+<div class="hint">← → / Space to navigate · F fullscreen</div>
+<div id="nav">
+  <button id="prev" aria-label="Previous">‹</button>
+  <span id="counter">1 / 14</span>
+  <button id="next" aria-label="Next">›</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0; const counter=document.getElementById('counter');
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    counter.textContent=(i+1)+' / '+slides.length;
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();show(i+1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1);}
+    else if(e.key==='Home'){show(0);} else if(e.key==='End'){show(slides.length-1);}
+    else if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen();}
+    }
+  });
+  show(0);
+</script>
+</body>
+</html>
